@@ -202,7 +202,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .gauge .lbls span:first-child{transform:none}
 .ghint{font-size:.78rem;color:var(--faint)}
 .regions{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
-.regions li{display:grid;grid-template-columns:7em 1fr 3em;align-items:center;gap:10px;font-size:.92rem}
+.regions li{display:grid;grid-template-columns:5.5em 1fr 3em;align-items:center;gap:10px;font-size:.92rem}
 .regions .bar{height:8px;border-radius:4px;background:color-mix(in srgb,var(--ink) 10%,transparent);position:relative;overflow:hidden}
 .regions .bar span{position:absolute;inset:0 auto 0 0;border-radius:4px;transition:width .25s}
 .regions .val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
@@ -216,18 +216,6 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .fact .v{font:400 1.75rem/1.1 var(--f-display);font-variant-numeric:tabular-nums}
 .fact .d{font-size:.82rem;color:var(--muted)}
 
-/* near me */
-.me{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
-.me b{color:var(--ink)}
-.me .lnk{font:600 .86rem/1 var(--f-body);background:transparent;border:0;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px 0}
-.me .val{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
-.me .chipb{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;font-size:.8rem;font-weight:600;color:var(--ink)}
-.me .chipb i{width:7px;height:7px;border-radius:50%}
-.me select{font:500 .88rem/1 var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 8px}
-.me .msg{flex-basis:100%;font-size:.8rem;color:var(--faint)}
-.regions li.you span:first-child{font-weight:700;color:var(--ink)}
-.regions li.you span:first-child::after{content:"you";font:600 .66rem/1 var(--f-body);margin-left:6px;padding:2px 5px;border-radius:4px;background:var(--ink);color:var(--bg);vertical-align:2px}
-.mk.you{outline:2px solid var(--ink);outline-offset:1px}
 /* wind */
 .windbox{display:flex;align-items:center;gap:9px;background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:10px;padding:8px 12px 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,.18);color:var(--ink)}
 .windbox svg{width:38px;height:38px;flex:none}
@@ -336,7 +324,6 @@ footer a{color:var(--ink)}
     <div class="side">
       <div class="now">
         <h2 id="nowHead">Worst spot right now</h2>
-        <div class="me" id="me"></div>
         <div class="big"><span class="n" id="nowNum">–</span><span class="unit">µg/m³ in <span id="nowRegion"></span></span></div>
         <div><span class="pill" id="nowPill"><i></i><span></span></span></div>
         <div class="gauge" id="gauge" role="group" aria-label="PM2.5 bands. Choose a band to see its advice."></div>
@@ -594,7 +581,7 @@ function say(m){
     else TYPE_T = setTimeout(()=>el.classList.remove("typing"), 900);
   })();
 }
-function setMood(avg, where){
+function setMood(avg){
   const m = bandIx(avg), b = BANDS[m], box = $("mood");
   setSky(m);
   box.style.setProperty("--mbg", `var(${b.soft})`);
@@ -606,7 +593,7 @@ function setMood(avg, where){
     LAST_MOOD = m; LAST_LINE = -1;
     say(m);
   }
-  $("moodNote").textContent = `${where||"Island average"} ${Math.round(avg)} µg/m³ · ${b.label}`;
+  $("moodNote").textContent = `Island average ${Math.round(avg)} µg/m³ · ${b.label}`;
 }
 const PUFFS = [["💖","✨","💖"],["💦","💧","💦"],["💨","😷","💨"],["💨","🌫️","💨"]];
 $("ava").addEventListener("click", ()=>{
@@ -656,7 +643,7 @@ function updateMap(hr){
     const v=hr.vals[i], b=band(v), col=css(b.c), tipTxt=`${r.name}: ${v} µg/m³ · ${b.label}`;
     CIRCLES[i].setStyle({color:col, fillColor:col, fillOpacity:circleFill(v)}).setRadius(circleRadius(v));
     CIRCLES[i].unbindTooltip().bindTooltip(tipTxt,{direction:"top",sticky:true});
-    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk${i===MY?" you":""}" style="--c:var(${b.c})"><i></i>${r.name}${i===MY?" · you":""}</div>`}));
+    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})"><i></i>${r.name}</div>`}));
     MARKERS[i].unbindTooltip().bindTooltip(tipTxt,{direction:"top",offset:[0,-14]});
   });
 }
@@ -686,44 +673,7 @@ function setWind(w){
   $("windArrow").style.transform = `rotate(${(deg+180)%360}deg)`;      // arrow points where the wind is going
 }
 
-/* ---------- near me ---------- */
-let MY = (()=>{ try{ const v=localStorage.getItem("myRegion"); return v===null?null:+v; }catch(e){ return null; } })();
-let ME_MSG = "", ME_PICK = false;
-function saveMy(v){ MY=v; try{ v===null?localStorage.removeItem("myRegion"):localStorage.setItem("myRegion",v); }catch(e){} ME_PICK=false; ME_MSG=""; window.__now && window.__now(); }
-function nearestRegion(lat,lon){
-  let best=0, bd=1e9;
-  REG.forEach((r,i)=>{ const dx=(r.lon-lon)*Math.cos(lat*Math.PI/180), dy=r.lat-lat, d=dx*dx+dy*dy; if(d<bd){bd=d;best=i;} });
-  return best;
-}
-function locate(){
-  if(!navigator.geolocation){ ME_MSG="Location isn't available here. Pick your area instead."; ME_PICK=true; renderMe(); return; }
-  ME_MSG="Finding you…"; renderMe();
-  navigator.geolocation.getCurrentPosition(p=>{
-    const {latitude:la, longitude:lo} = p.coords;
-    if(la<1.15||la>1.48||lo<103.55||lo>104.1){ ME_MSG="You seem to be outside Singapore. Pick an area instead."; ME_PICK=true; renderMe(); return; }
-    saveMy(nearestRegion(la,lo));
-  }, ()=>{ ME_MSG="Couldn't get your location. Pick your area instead."; ME_PICK=true; renderMe(); }, {timeout:10000, maximumAge:600000});
-}
-function renderMe(hr){
-  const el=$("me"); if(!el) return;
-  hr = hr || window.__hr;
-  const picker = `<select id="mePick" aria-label="Pick your area"><option value="">Pick your area…</option>${REG.map((r,i)=>`<option value="${i}"${i===MY?" selected":""}>${r.name}</option>`).join("")}</select>`;
-  if(MY===null || ME_PICK){
-    el.innerHTML = MY===null && !ME_PICK
-      ? `<span>📍</span><button class="lnk" id="meLoc" type="button">Show my area</button><span>or</span><button class="lnk" id="mePickBtn" type="button">pick one</button>${ME_MSG?`<span class="msg">${ME_MSG}</span>`:""}`
-      : `<span>📍</span>${picker}${MY!==null?`<button class="lnk" id="meCancel" type="button">Cancel</button>`:""}${ME_MSG?`<span class="msg">${ME_MSG}</span>`:""}`;
-  } else {
-    const v = hr ? hr.vals[MY] : null, b = v!=null ? band(v) : null;
-    el.innerHTML = `<span>📍 Your area:</span><b>${REG[MY].name}</b>${b?`<span class="val">${v}</span><span class="chipb" style="background:var(${b.soft})"><i style="background:var(${b.c})"></i>${b.label}</span>`:""}
-      <button class="lnk" id="meChange" type="button">Change</button><button class="lnk" id="meClear" type="button" aria-label="Stop showing my area">Clear</button>`;
-  }
-  $("meLoc") && ($("meLoc").onclick = locate);
-  $("mePickBtn") && ($("mePickBtn").onclick = ()=>{ ME_PICK=true; ME_MSG=""; renderMe(); });
-  $("mePick") && ($("mePick").onchange = e=>{ if(e.target.value!=="") saveMy(+e.target.value); });
-  $("meCancel") && ($("meCancel").onclick = ()=>{ ME_PICK=false; ME_MSG=""; renderMe(); });
-  $("meChange") && ($("meChange").onclick = ()=>{ ME_PICK=true; renderMe(); });
-  $("meClear") && ($("meClear").onclick = ()=>saveMy(null));
-}
+try{ localStorage.removeItem("myRegion"); }catch(e){}   // clean up the old "near me" choice
 
 /* ---------- SVG helpers ---------- */
 const NS="http://www.w3.org/2000/svg";
@@ -808,13 +758,11 @@ function renderNow(i){
   setGauge(hr.max);
   const scale = Math.max(160, ...hr.vals);
   $("regionList").innerHTML = REG.map((r,k)=>({r,v:hr.vals[k]})).sort((a,b)=>b.v-a.v).map(({r,v})=>
-    `<li class="${REG.indexOf(r)===MY?"you":""}"><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
+    `<li><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
   CUR_BAND = BANDS.indexOf(b); showAdvice(CUR_BAND,false);
-  window.__hr = hr;
-  if(MY!==null) setMood(hr.vals[MY], `Your area (${REG[MY].name})`); else setMood(hr.avg);
+  setMood(hr.avg);
   updateMap(hr);
   setWind(windFor(i));
-  renderMe(hr);
 }
 
 /* ---------- time controls ---------- */
@@ -995,7 +943,7 @@ function drawDiurnal(){
 function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
 drawAll();
 window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); fitHeat(); }; window.__font=()=>renderNow(cur);
-window.__latest=last.t; window.__now=()=>renderNow(cur);
+window.__latest=last.t;
 }
 
 /* ---------- data loading ---------- */
