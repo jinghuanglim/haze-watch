@@ -125,6 +125,12 @@ header .titles{display:flex;flex-direction:column;gap:10px;min-width:0}
 .dayrow .push{margin-left:auto}
 .scrub{display:flex;align-items:center;gap:14px}
 .hourwrap{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;gap:2px;flex:none}
+.seg button{font:600 .76rem/1 var(--f-data);border:0;background:transparent;color:var(--muted);padding:7px 11px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--line);color:var(--ink)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.playnote{font:500 .74rem/1.3 var(--f-data);color:var(--muted)}
+@media (max-width:600px){.scrub{flex-wrap:wrap}.hourwrap{order:3;flex-basis:100%}.hourlbl{margin-left:auto}}
 .ticks{display:flex;justify-content:space-between;font:500 .7rem/1 var(--f-data);color:var(--faint);padding:0 2px}
 .hourlbl{font:600 1rem/1 var(--f-data);color:var(--ink);min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums}
 input.hour{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer;margin:0}
@@ -229,7 +235,11 @@ footer a{color:var(--accent)}
           <button class="btn ghost push" id="toLatest" type="button" hidden>Back to latest</button>
         </div>
         <div class="scrub">
-          <button class="btn" id="play" type="button" aria-label="Play this day">▶ Play</button>
+          <button class="btn" id="play" type="button">▶ Play</button>
+          <div class="seg" role="group" aria-label="What to play">
+            <button type="button" id="modeDay" aria-pressed="true" title="Play the chosen day">Day</button>
+            <button type="button" id="modeAll" aria-pressed="false" title="Play from 1 Oct to now">All</button>
+          </div>
           <div class="hourwrap">
             <input type="range" class="hour" id="slider" min="0" max="23" step="1" value="23" aria-label="Choose an hour">
             <div class="ticks"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span></div>
@@ -471,7 +481,7 @@ function renderNow(i){
   $("mapTitle").textContent = isLatest ? "Latest reading by region" : "Reading by region at this hour";
   updateMap(hr);
 }
-["slider","play","toLatest","prevDay","nextDay","daySel"].forEach(id=>{const o=$(id); o.replaceWith(o.cloneNode(true));});
+["slider","play","toLatest","prevDay","nextDay","daySel","modeDay","modeAll"].forEach(id=>{const o=$(id); o.replaceWith(o.cloneNode(true));});
 const slider=$("slider"), daySel=$("daySel"), playBtn=$("play");
 const at = new Map(hours.map((h,i)=>[h.d+"|"+h.h, i]));          // "date|hour" -> index
 const dayHours = d => hours.filter(h=>h.d===d).map(h=>h.h);        // hours available that day
@@ -502,16 +512,26 @@ $("prevDay").addEventListener("click", ()=>{ stop(); const di=days.findIndex(x=>
 $("nextDay").addEventListener("click", ()=>{ stop(); const di=days.findIndex(x=>x.d===hours[cur].d); if(di<days.length-1) go(nearest(days[di+1].d, hours[cur].h)); });
 $("toLatest").addEventListener("click", ()=>{ stop(); go(hours.length-1); });
 playBtn.textContent="▶ Play";
+let mode = window.__mode || "day";
+function setMode(m){ mode = window.__mode = m; $("modeDay").setAttribute("aria-pressed", m==="day"); $("modeAll").setAttribute("aria-pressed", m==="all"); }
+setMode(mode);
+$("modeDay").addEventListener("click", ()=>{ stop(); setMode("day"); });
+$("modeAll").addEventListener("click", ()=>{ stop(); setMode("all"); });
 playBtn.addEventListener("click", ()=>{
   if(window.__timer){ stop(); return; }
-  const d = hours[cur].d, hs = dayHours(d);
-  if(hours[cur].h >= Math.max(...hs)) go(at.get(d+"|"+Math.min(...hs)));   // at end of day: start from 12am
+  let speed, endOf;
+  if(mode==="all"){
+    if(cur >= hours.length-1) go(0);                                       // at the end: restart from 1 Oct, 12am
+    speed = Math.max(40, Math.min(150, Math.round(30000/hours.length)));    // whole range in about 30s
+    endOf = next => next>=hours.length;
+  }else{
+    const d = hours[cur].d, hs = dayHours(d);
+    if(hours[cur].h >= Math.max(...hs)) go(at.get(d+"|"+Math.min(...hs)));  // at end of day: start from 12am
+    speed = 350;
+    endOf = next => next>=hours.length || hours[next].d!==d;
+  }
   playBtn.textContent="❚❚ Pause";
-  window.__timer = setInterval(()=>{
-    const next = cur+1;
-    if(next>=hours.length || hours[next].d!==d){ stop(); return; }
-    go(next);
-  }, 350);
+  window.__timer = setInterval(()=>{ const next=cur+1; if(endOf(next)){ stop(); return; } go(next); }, speed);
 });
 syncControls(cur);
 
