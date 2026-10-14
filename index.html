@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Onest:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Onest:wght@400;500;600;700&family=Kalam:wght@400;700&display=swap">
 <style>
 /* Layout: "JH's haze diary". A living sky across the top (its colour and blur follow the haze), then plain-paper sections.
    Colour rule: band colours (b1–b4) only mean NEA bands. Interface uses ink and paper; the sky and small highlights take the current band's tint. */
@@ -35,9 +35,14 @@
   --sky1:#8fc6ea; --sky2:#e3f1f8; --city-back:#9fb3bf; --city-front:#5f717c; --win:#e9f2f6; --haze:#c9b98a;
   --f-display:"Young Serif",Georgia,"Times New Roman",serif;
   --f-body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-hand:"Kalam","Comic Sans MS","Segoe Print",cursive;
+  --pen:#2753c9; --paper:#fffdf6; --rule:#d9e3f2;
+  --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --map-filter:grayscale(1) brightness(.75) contrast(.9);
+  --pen:#9db8ff; --paper:#1f2427; --rule:#2c3640;
+  --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --p1:#3fb388; --p2:#9cc85a; --p3:#e6ae22; --p4:#f06d45; --p5:#d0466c;
   --bg:#121516; --surface:#1a1e20; --line:#2c3235; --ink:#ecebe6; --muted:#a3a7a9; --faint:#73787b;
   --btn:#ecebe6; --btn-ink:#121516;
@@ -47,6 +52,8 @@
   --city-back:#2a3438; --city-front:#151b1e; --win:#e8c675; color-scheme:dark}}
 :root[data-theme="dark"]{
   --map-filter:grayscale(1) brightness(.75) contrast(.9);
+  --pen:#9db8ff; --paper:#1f2427; --rule:#2c3640;
+  --grain:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --p1:#3fb388; --p2:#9cc85a; --p3:#e6ae22; --p4:#f06d45; --p5:#d0466c;
   --bg:#121516; --surface:#1a1e20; --line:#2c3235; --ink:#ecebe6; --muted:#a3a7a9; --faint:#73787b;
   --btn:#ecebe6; --btn-ink:#121516;
@@ -57,7 +64,7 @@
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body);padding-bottom:48px}
+body{margin:0;background:var(--grain),var(--bg);color:var(--ink);font:16px/1.55 var(--f-body);padding-bottom:48px}
 p{margin:0}
 h1,h2{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0;letter-spacing:-.005em}
 h1{font-size:clamp(2.1rem,5.4vw,3.4rem);line-height:1.02}
@@ -227,6 +234,22 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .psi .info{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 .72rem/1 var(--f-body);cursor:pointer;padding:0}
 .psi .info[aria-expanded="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .psinote{flex-basis:100%;font-size:.8rem;color:var(--muted);line-height:1.45}
+/* diary card */
+.diary{margin-top:22px;max-width:560px;background:var(--paper);border-radius:4px;padding:16px 20px 18px 22px;transform:rotate(-.6deg);
+  box-shadow:0 1px 0 rgba(0,0,0,.04),0 8px 22px rgba(0,0,0,.12);position:relative;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 29px,var(--rule) 29px 30px);background-position:0 12px}
+.diary::before{content:"";position:absolute;left:22px;top:-8px;width:54px;height:16px;background:color-mix(in srgb,var(--tint) 45%,transparent);transform:rotate(-8deg);border-radius:2px}
+.diary h3{margin:0 0 4px;font:700 1.2rem/30px var(--f-hand);color:var(--pen)}
+.diary p{font:400 1.12rem/30px var(--f-hand);color:var(--pen)}
+.diary-hint{font-size:.8rem;color:var(--faint);margin-top:12px}
+/* footer sign-off */
+.sign{font:700 1.5rem/1.2 var(--f-hand);color:var(--pen);transform:rotate(-1.2deg);transform-origin:left;margin-bottom:4px}
+.why{font-size:.92rem;color:var(--ink);max-width:62ch}
+.disclaim{margin:6px 0 4px;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.disclaim li{position:relative;padding-left:18px}
+.disclaim li::before{content:"✳";position:absolute;left:0;color:var(--faint)}
+.nowrap{white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+@media (max-width:600px){.windbox{padding:5px 9px 5px 5px;gap:6px}.windbox svg{width:26px;height:26px}.windbox b{font-size:.76rem}.windbox span{font-size:.7rem}}
 /* wind */
 .windbox{display:flex;align-items:center;gap:9px;background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:10px;padding:8px 12px 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,.18);color:var(--ink)}
 .windbox svg{width:38px;height:38px;flex:none}
@@ -358,6 +381,8 @@ footer a{color:var(--ink)}
       <span><span class="dot" style="background:var(--muted)"></span>Worst hour</span>
     </div>
     <div class="chart" id="daily"></div>
+    <div class="diary" id="diary" aria-live="polite"></div>
+    <p class="diary-hint">Tap a day on the chart to read JH's entry for it.</p>
   </section>
 
   <hr class="rule">
@@ -393,8 +418,17 @@ footer a{color:var(--ink)}
   </section>
 
   <footer>
+    <p class="sign">Made by JH, mostly at 1am 🌫️</p>
+    <p class="why">Why I made this: I wanted to know if I could go for a run without checking three different apps. Now I check one page, and it judges me.</p>
+    <ul class="disclaim">
+      <li>Not medical advice. I'm a haze enthusiast, not a doctor.</li>
+      <li>Readings come from NEA. The puns are 100% my own fault.</li>
+      <li>No haze was harmed in the making of this page. Several lungs were.</li>
+      <li>If this page says Normal but you smell smoke, trust your nose over my code.</li>
+      <li>Updates every 15 minutes. JH updates whenever he remembers.</li>
+    </ul>
     <span id="foot"></span>
-    <span>Source: NEA PM2.5 readings via <a href="https://data.gov.sg/datasets/d_e1058d6974c877257e32048ab128ad83/view" target="_blank" rel="noopener">data.gov.sg</a>. Health guidance: <a href="https://www.haze.gov.sg" target="_blank" rel="noopener">haze.gov.sg</a>. Data refreshes every 15 minutes; NEA publishes new readings hourly.</span>
+    <span>Source: NEA readings via <a href="https://data.gov.sg/datasets/d_e1058d6974c877257e32048ab128ad83/view" target="_blank" rel="noopener">data.gov.sg</a>. Health guidance: <a href="https://www.haze.gov.sg" target="_blank" rel="noopener">haze.gov.sg</a>.</span>
   </footer>
 </div>
 </main>
@@ -697,6 +731,21 @@ function setWind(w){
 
 try{ localStorage.removeItem("myRegion"); }catch(e){}   // clean up the old "near me" choice
 
+/* ---------- handwritten margin notes ---------- */
+function penNote(svg, px, py, text, o={}){
+  const W=+svg.getAttribute("viewBox").split(" ")[2], pen=css("--pen"), fs=o.fs||15;
+  const tx=Math.min(Math.max(px+(o.dx||0), 8), W-8), ty=py+(o.dy||-44);
+  const anchor = o.anchor || (tx>W*.7 ? "end" : tx<W*.3 ? "start" : "middle");
+  const g=el("g",{transform:`rotate(${o.rot ?? -2} ${tx} ${ty})`},svg);
+  const t=el("text",{x:tx,y:ty,"text-anchor":anchor,fill:pen,"font-size":fs,"font-family":css("--f-hand"),"font-weight":700},g); t.textContent=text;
+  // curved arrow from under the note to the point
+  const sx=tx+(anchor==="end"?-14:anchor==="start"?14:0), sy=ty+(ty<py?6:-fs);
+  const ex=px+(sx<px?-3:3), ey=py+(sy<py?-7:7), cx=(sx+ex)/2+(sx<ex?-18:18), cy=(sy+ey)/2;
+  el("path",{d:`M${sx},${sy} Q${cx},${cy} ${ex},${ey}`,fill:"none",stroke:pen,"stroke-width":1.6,"stroke-linecap":"round"},svg);
+  const ang=Math.atan2(ey-cy,ex-cx), a1=ang+2.6, a2=ang-2.6;
+  el("path",{d:`M${ex+7*Math.cos(a1)},${ey+7*Math.sin(a1)} L${ex},${ey} L${ex+7*Math.cos(a2)},${ey+7*Math.sin(a2)}`,fill:"none",stroke:pen,"stroke-width":1.6,"stroke-linecap":"round","stroke-linejoin":"round"},svg);
+}
+
 /* ---------- SVG helpers ---------- */
 const NS="http://www.w3.org/2000/svg";
 const el = (tag, attrs={}, parent) => { const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); parent&&parent.appendChild(e); return e; };
@@ -764,6 +813,23 @@ $("hmHead").textContent = `${REG[worstReg].name} has been coughing the most`;
 $("diHead").textContent = `Worst around ${fmtHour(peakHr)}, best around ${fmtHour(lowHr)}. Plan kopi runs accordingly.`;
 $("foot").textContent = `${hours.length} hourly readings since ${fmtDay(days[0].d)}.`;
 
+/* ---------- diary entries ---------- */
+const DIARY = [
+  ["Blue sky day. Lungs very happy.","Clean air! Went out like a normal human.","Proper fresh air. Rare, so I savoured it."],
+  ["Meh air. Kept the run short.","Hazy-ish all day. Windows half shut.","Not bad, not great. Very Singapore."],
+  ["Thick haze. Mask on, run cancelled.","Smelled like someone's BBQ all day.","Air purifier working overtime. MVP."],
+  ["Stayed home. The air was not it.","Haze so thick I could chew it.","Did not leave the house. No regrets."]
+];
+const psiDayMax = d => { let m=null; hours.forEach(h=>{ if(h.d===d){ const p=PSI.get(h.t); if(p){ const v=Math.max(...p); if(m===null||v>m) m=v; } } }); return m; };
+function setDiary(i){
+  const d = days[i], prev = days[i-1], n = hours.filter(h=>h.d===d.d).length;
+  const bi = bandIx(d.avg), seed = [...d.d].reduce((s,c)=>s+c.charCodeAt(0),0);
+  const parts = [DIARY[bi][seed % DIARY[bi].length], `Worst hour: ${d.peak} in ${REG[d.peakReg].name} at ${fmtHour(+d.peakT.slice(11,13))}.`];
+  if(prev && n>=24){ const ch=(d.avg-prev.avg)/prev.avg; if(ch>.2) parts.push("Worse than yesterday, sian."); else if(ch<-.2) parts.push("Better than yesterday. Small wins."); }
+  const pm = psiDayMax(d.d); if(pm>300) parts.push("PSI went hazardous. Stay in!"); else if(pm>200) parts.push(`PSI hit ${pm}. Not a running day.`); else if(pm>100) parts.push("PSI was in the Unhealthy range.");
+  $("diary").innerHTML = `<h3>${fmtWeekday(d.d)} ${fmtDay(d.d)}${n<24?" (so far)":""}</h3><p>${parts.join(" ")}</p>`;
+}
+
 /* ---------- now panel + map ---------- */
 const today = sgDate(), yday = (()=>{ const t=new Date(today+"T00:00:00Z"); t.setUTCDate(t.getUTCDate()-1); return t.toISOString().slice(0,10); })();
 const dayName = d => `${d===today?"Today":d===yday?"Yesterday":fmtWeekday(d)}, ${fmtDay(d)}`;
@@ -790,8 +856,8 @@ function renderNow(i){
   if(ps){
     const lo=Math.min(...ps), hi=Math.max(...ps), wr=ps.indexOf(hi), pb=psiBand(hi);
     line.hidden=false;
-    line.innerHTML = `<span>24-hr PSI:</span><b>${lo===hi?hi:`${lo}–${hi}`}</b><span class="pchip"><i style="background:var(${pb.c})"></i>${pb.label} (${REG[wr].name})</span>
-      <button class="info" id="psiInfo" type="button" aria-expanded="${PSI_OPEN}" aria-controls="psiNote" aria-label="What is the 24-hour PSI?">i</button>
+    line.innerHTML = `<span>24-hr PSI:</span><b>${lo===hi?hi:`${lo}–${hi}`}</b><span class="nowrap"><span class="pchip"><i style="background:var(${pb.c})"></i>${pb.label} (${REG[wr].name})</span>
+      <button class="info" id="psiInfo" type="button" aria-expanded="${PSI_OPEN}" aria-controls="psiNote" aria-label="What is the 24-hour PSI?">i</button></span>
       <span class="psinote" id="psiNote"${PSI_OPEN?"":" hidden"}>NEA bases its daily health advice on the 24-hour PSI. The PM2.5 reading above shows the last hour, so use it to plan the next few hours.</span>`;
     $("psiInfo").onclick = ()=>{ PSI_OPEN=!PSI_OPEN; $("psiNote").hidden=!PSI_OPEN; $("psiInfo").setAttribute("aria-expanded",PSI_OPEN); };
     if(pb.lvl > bandIx(hr.max)) ADVICE_OVERRIDE = `<b>PSI is ${pb.label} (${REG[wr].name}):</b> ${pb.advice}`;
@@ -881,6 +947,13 @@ function drawDaily(){
     txt(svg, cx, cy-8, d.peak, {"text-anchor":i===days.length-1?"end":"middle",fill:css("--ink"),"font-family":css("--f-num"),"font-size":10.5});
   });
   el("circle",{cx:x(days.length-1),cy:y(days[days.length-1].avg),r:4.5,fill:css("--ink"),stroke:css("--bg"),"stroke-width":2},svg);
+  // margin notes: worst and cleanest days (full days only)
+  const full = days.map((d,i)=>({d,i})).filter(o=>o.i<days.length-1 || hours.filter(h=>h.d===o.d.d).length>=24);
+  if(full.length>2){
+    const wi = full.reduce((a,b)=>b.d.avg>a.d.avg?b:a).i, ci = full.reduce((a,b)=>b.d.avg<a.d.avg?b:a).i;
+    penNote(svg, x(wi), y(days[wi].avg), narrow?"worst day ☹":`${fmtDay(days[wi].d)}: worst day. stayed in ☹`, {dy:-58, dx: wi>days.length*.6?-30:30});
+    penNote(svg, x(ci), y(days[ci].avg), narrow?"blue sky!":`${fmtDay(days[ci].d)}: actual blue sky!`, {dy:-40, dx:24, rot:-3});
+  }
   const cross = el("line",{y1:T,y2:H-B,stroke:css("--ink"),"stroke-width":1,opacity:0},svg);
   const hit = el("rect",{x:L,y:0,width:W-L-R,height:H-B,fill:"transparent"},svg);
   const tip = tipFor(box);
@@ -892,6 +965,8 @@ function drawDaily(){
     tip.innerHTML=`<b>${fmtDay(d.d)}</b><br>Island average ${Math.round(d.avg)}<br>Regions ${Math.round(d.lo)}–${Math.round(d.hi)}<br>Worst hour ${d.peak} · ${REG[d.peakReg].name}, ${fmtHour(+d.peakT.slice(11,13))}`;
   };
   hit.addEventListener("pointermove",move); hit.addEventListener("pointerdown",move);
+  hit.addEventListener("click", e=>{ const r=svg.getBoundingClientRect(), sx=(e.clientX-r.left)/r.width*W;
+    setDiary(Math.max(0,Math.min(days.length-1,Math.round((sx-L)/((W-L-R)/Math.max(1,days.length-1)))))); });
   hit.addEventListener("pointerleave",()=>{ tip.hidden=true; cross.setAttribute("opacity",0); });
 }
 
@@ -965,6 +1040,8 @@ function drawDiurnal(){
   el("polygon",{points:`${x(0)},${y(0)} `+diR.map((v,h)=>`${x(h)},${y(v)}`).join(" ")+` ${x(23)},${y(0)}`,fill:css("--ink"),opacity:.07},svg);
   el("polyline",{points:diR.map((v,h)=>`${x(h)},${y(v)}`).join(" "),fill:"none",stroke:css("--ink"),"stroke-width":2.4,"stroke-linejoin":"round"},svg);
   el("circle",{cx:x(peakHr),cy:y(diR[peakHr]),r:4.5,fill:css("--ink"),stroke:css("--bg"),"stroke-width":2},svg);
+  penNote(svg, x(peakHr), y(diR[peakHr]), `${fmtHour(peakHr)}: worst. stay indoors`, {dy:-30, dx: peakHr>15?-40:40, rot:-2});
+  if(Math.abs(lowHr-peakHr)>3) penNote(svg, x(lowHr), y(diR[lowHr]), lowHr>=5 && lowHr<=10 ? "best for a run ✓" : "least hazy ✓", {dy:46, dx: lowHr>15?-36:36, rot:2});
   const cross=el("line",{y1:T,y2:H-B,stroke:css("--ink"),opacity:0},svg);
   const hit=el("rect",{x:L,y:T,width:W-L-R,height:H-T-B,fill:"transparent"},svg);
   const tip=tipFor(box);
@@ -977,7 +1054,9 @@ function drawDiurnal(){
 }
 
 /* ---------- draw ---------- */
-function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
+let DIARY_I = window.__diaryI ?? days.length-1; if(DIARY_I>days.length-1) DIARY_I=days.length-1;
+const _setDiary = setDiary; setDiary = i => { DIARY_I = window.__diaryI = i; _setDiary(i); };
+function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); setDiary(DIARY_I); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
 drawAll();
 window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); fitHeat(); }; window.__font=()=>renderNow(cur);
 window.__latest=last.t;
