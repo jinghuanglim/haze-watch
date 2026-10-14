@@ -90,12 +90,49 @@ header .titles{display:flex;flex-direction:column;gap:10px;min-width:0}
   border:2px solid var(--c);box-shadow:0 2px 10px rgba(0,0,0,.18);transform:translate(-50%,-50%);white-space:nowrap;width:max-content}
 .mk span{font:600 9.5px/1 var(--f-data);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
 .mk b{font:600 17px/1 var(--f-data);color:var(--ink);font-variant-numeric:tabular-nums}
+.maplegend{background:color-mix(in srgb,var(--surface) 92%,transparent);border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+  display:flex;flex-direction:column;gap:5px;font:500 11px/1.2 var(--f-data);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.maplegend b{font:600 9.5px/1 var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.maplegend span{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.maplegend i{width:10px;height:10px;border-radius:50%;flex:none}
+.maplegend em{font-style:normal;color:var(--muted);margin-left:auto;padding-left:10px}
+.gauge{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.gauge .segs{position:relative;display:flex;gap:2px;height:10px}
+.gauge .segs div{height:100%;border-radius:3px;opacity:.9}
+.gauge .mark{position:absolute;top:-5px;width:4px;height:20px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--surface);transform:translateX(-50%);transition:left .25s}
+.gauge .lbls{position:relative;height:12px;font:500 .7rem/1 var(--f-data);color:var(--faint)}
+.gauge .lbls span{position:absolute;transform:translateX(-50%)}
+.gauge .lbls span:first-child{transform:none}
+.gauge .names{display:flex;gap:2px;font:600 .66rem/1 var(--f-data);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.gauge .names span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.keyrow{display:none;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font:500 .74rem/1.2 var(--f-data);color:var(--muted)}
+.keyrow span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.keyrow i{width:9px;height:9px;border-radius:50%}
+@media (max-width:600px){.maplegend{display:none}.keyrow{display:flex}}
 .maphint{font-size:.78rem;color:var(--faint);margin-top:8px}
 .when{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .when .today{font:600 .78rem/1 var(--f-data);text-transform:uppercase;letter-spacing:.08em;padding:4px 8px;border-radius:4px;background:var(--accent);color:var(--accent-ink)}
 .when .today.past{background:var(--line);color:var(--muted)}
-.scrub{display:flex;align-items:center;gap:12px;margin-top:12px}
-.scrub input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.timebar{display:flex;flex-direction:column;gap:14px;margin-top:14px}
+.dayrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.daysel{font:600 .85rem/1 var(--f-data);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:9px 34px 9px 14px;cursor:pointer;appearance:none;-webkit-appearance:none;min-width:0;max-width:100%;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 52%,calc(100% - 13px) 52%;background-size:5px 5px;background-repeat:no-repeat}
+.daysel:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.icon{width:36px;height:36px;padding:0;display:inline-grid;place-items:center;font-size:1.1rem;line-height:1}
+.btn:disabled{opacity:.35;cursor:default}
+.dayrow .push{margin-left:auto}
+.scrub{display:flex;align-items:center;gap:14px}
+.hourwrap{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.ticks{display:flex;justify-content:space-between;font:500 .7rem/1 var(--f-data);color:var(--faint);padding:0 2px}
+.hourlbl{font:600 1rem/1 var(--f-data);color:var(--ink);min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums}
+input.hour{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer;margin:0}
+input.hour::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--track,var(--line))}
+input.hour::-moz-range-track{height:6px;border-radius:3px;background:var(--track,var(--line))}
+input.hour::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--accent);margin-top:-7px}
+input.hour::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid var(--surface);box-shadow:0 0 0 1px var(--accent)}
+input.hour:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
 .btn{font:600 .8rem/1 var(--f-data);border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
   border-radius:999px;padding:8px 14px;cursor:pointer;white-space:nowrap}
 .btn.ghost{background:transparent;color:var(--accent)}
@@ -182,11 +219,23 @@ footer a{color:var(--accent)}
         <h2 id="mapTitle">Readings by region</h2>
       </div>
       <div id="map" class="leaf" role="region" aria-label="Map of Singapore showing PM2.5 by region"></div>
+      <div class="keyrow" id="keyRow"></div>
       <p class="maphint">Pinch or tap + / − to zoom. Click the map to zoom with your mouse wheel.</p>
-      <div class="scrub">
-        <button class="btn" id="play" type="button" aria-label="Play">▶ Play</button>
-        <input type="range" id="slider" min="0" max="0" value="0" aria-label="Choose an hour">
-        <button class="btn ghost" id="toLatest" type="button" hidden>Latest</button>
+      <div class="timebar">
+        <div class="dayrow">
+          <button class="btn ghost icon" id="prevDay" type="button" aria-label="Previous day">‹</button>
+          <select class="daysel" id="daySel" aria-label="Choose a day"></select>
+          <button class="btn ghost icon" id="nextDay" type="button" aria-label="Next day">›</button>
+          <button class="btn ghost push" id="toLatest" type="button" hidden>Back to latest</button>
+        </div>
+        <div class="scrub">
+          <button class="btn" id="play" type="button" aria-label="Play this day">▶ Play</button>
+          <div class="hourwrap">
+            <input type="range" class="hour" id="slider" min="0" max="23" step="1" value="23" aria-label="Choose an hour">
+            <div class="ticks"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span></div>
+          </div>
+          <span class="hourlbl" id="hourLbl">–</span>
+        </div>
       </div>
     </div>
     <div class="side">
@@ -197,6 +246,7 @@ footer a{color:var(--accent)}
       </div>
       <div class="big"><span class="num" id="nowNum">–</span><span class="unit">µg/m³ in <span id="nowRegion"></span></span></div>
       <div><span class="pill" id="nowPill"><i></i><span></span></span></div>
+      <div class="gauge" id="gauge" aria-hidden="true"></div>
       <ul class="regions" id="regionList"></ul>
       <p class="advice" id="advice"></p>
     </div>
@@ -286,6 +336,20 @@ const fmtTs = t => `${fmtDay(t.slice(0,10))}, ${fmtHour(+t.slice(11,13))}`;
 
 
 
+/* ---------- band scale (gauge) ---------- */
+const GMAX = 300;
+const GSEG = [[0,55,"--b1","Normal"],[55,150,"--b2","Elevated"],[150,250,"--b3","High"],[250,GMAX,"--b4","V. high"]];
+function buildGauge(){
+  const g=$("gauge"); if(g.dataset.ready) return;
+  g.innerHTML = `<div class="segs">${GSEG.map(([a,b,c])=>`<div style="flex:${b-a};background:var(${c})"></div>`).join("")}<span class="mark" id="gMark"></span></div>
+    <div class="names">${GSEG.map(([a,b,,n])=>`<span style="flex:${b-a}">${n}</span>`).join("")}</div>
+    <div class="lbls"><span style="left:0">0</span>${[55,150,250].map(v=>`<span style="left:${v/GMAX*100}%">${v}</span>`).join("")}</div>`;
+  g.dataset.ready="1";
+}
+function buildKeyRow(){ const k=$("keyRow"); if(k.dataset.ready) return; k.innerHTML = BANDS.map((b,i)=>`<span><i style="background:var(${b.c})"></i>${b.label} ${RANGES[i]}</span>`).join(""); k.dataset.ready="1"; }
+buildKeyRow();
+function setGauge(v){ buildGauge(); $("gMark").style.left = Math.min(v,GMAX-2)/GMAX*100+"%"; }
+
 /* ---------- date helpers ---------- */
 const sgDate = () => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore"}).format(new Date());
 const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -304,6 +368,11 @@ function initMap(){
   LMAP.fitBounds(HOME);
   LMAP.on("click focus",()=>LMAP.scrollWheelZoom.enable());
   LMAP.on("mouseout blur",()=>LMAP.scrollWheelZoom.disable());
+  const lg = L.control({position:"bottomleft"});
+  lg.onAdd = () => { const d=L.DomUtil.create("div","maplegend");
+    d.innerHTML = `<b>PM2.5 · µg/m³</b>` + BANDS.map((b,i)=>`<span><i style="background:var(${b.c})"></i>${b.label}<em>${RANGES[i]}</em></span>`).join("");
+    L.DomEvent.disableClickPropagation(d); return d; };
+  lg.addTo(LMAP);
   REG.forEach(r=>{
     CIRCLES.push(L.circle([r.lat,r.lon],{radius:3600, weight:1.5, fillOpacity:.38, interactive:false}).addTo(LMAP));
     MARKERS.push(L.marker([r.lat,r.lon],{icon:L.divIcon({className:"",html:"",iconSize:null}), keyboard:false}).addTo(LMAP));
@@ -394,6 +463,7 @@ function renderNow(i){
   $("nowRegion").textContent = REG[wi].name;
   const pill = $("nowPill"); pill.style.background=`var(${b.soft})`; pill.querySelector("i").style.background=`var(${b.c})`;
   pill.querySelector("span").textContent = `${b.n} · ${b.label}`;
+  setGauge(hr.max);
   const scale = Math.max(160, ...hr.vals);
   $("regionList").innerHTML = REG.map((r,k)=>({r,v:hr.vals[k]})).sort((a,b)=>b.v-a.v).map(({r,v})=>
     `<li><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
@@ -401,18 +471,49 @@ function renderNow(i){
   $("mapTitle").textContent = isLatest ? "Latest reading by region" : "Reading by region at this hour";
   updateMap(hr);
 }
-["slider","play","toLatest"].forEach(id=>{const o=$(id); o.replaceWith(o.cloneNode(true));});
-$("play").textContent="▶ Play";
-const slider = $("slider"); slider.max = hours.length-1; slider.value = hours.length-1;
+["slider","play","toLatest","prevDay","nextDay","daySel"].forEach(id=>{const o=$(id); o.replaceWith(o.cloneNode(true));});
+const slider=$("slider"), daySel=$("daySel"), playBtn=$("play");
+const at = new Map(hours.map((h,i)=>[h.d+"|"+h.h, i]));          // "date|hour" -> index
+const dayHours = d => hours.filter(h=>h.d===d).map(h=>h.h);        // hours available that day
+const today = sgDate(), yday = (()=>{ const t=new Date(today+"T00:00:00Z"); t.setUTCDate(t.getUTCDate()-1); return t.toISOString().slice(0,10); })();
+const dayName = d => `${d===today?"Today":d===yday?"Yesterday":fmtWeekday(d)}, ${fmtDay(d)}`;
+daySel.innerHTML = [...days].reverse().map(x=>`<option value="${x.d}">${dayName(x.d)}</option>`).join("");
 let cur = hours.length-1; window.__timer=null;
-slider.addEventListener("input", ()=>{ cur=+slider.value; renderNow(cur); });
-$("toLatest").addEventListener("click", ()=>{ if(window.__timer){ clearInterval(window.__timer); window.__timer=null; $("play").textContent="▶ Play"; } cur=hours.length-1; slider.value=cur; renderNow(cur); });
-$("play").addEventListener("click", ()=>{
-  if(window.__timer){ clearInterval(window.__timer); window.__timer=null; $("play").textContent="▶ Play"; return; }
-  if(cur>=hours.length-1) cur=0;
-  $("play").textContent="❚❚ Pause";
-  window.__timer=setInterval(()=>{ cur++; slider.value=cur; renderNow(cur); if(cur>=hours.length-1){ clearInterval(window.__timer); window.__timer=null; $("play").textContent="▶ Play"; } }, 70);
+function nearest(d, h){                                            // closest available hour on that day
+  const hs = dayHours(d); if(!hs.length) return null;
+  let best = hs[0]; hs.forEach(x=>{ if(Math.abs(x-h) < Math.abs(best-h)) best=x; });
+  return at.get(d+"|"+best);
+}
+function syncControls(i){
+  const hr = hours[i], hs = dayHours(hr.d), maxH = Math.max(...hs);
+  daySel.value = hr.d; slider.value = hr.h;
+  $("hourLbl").textContent = fmtHour(hr.h);
+  const di = days.findIndex(x=>x.d===hr.d);
+  $("prevDay").disabled = di<=0; $("nextDay").disabled = di>=days.length-1;
+  const pv = hr.h/23*100, pa = (maxH+1)/24*100;
+  slider.style.setProperty("--track", `linear-gradient(to right, var(--accent) 0 ${pv}%, var(--line) ${pv}% ${pa}%, color-mix(in srgb, var(--line) 35%, transparent) ${pa}% 100%)`);
+  slider.setAttribute("aria-valuetext", `${dayName(hr.d)}, ${fmtHour(hr.h)}`);
+}
+function go(i){ if(i==null) return; cur=i; renderNow(cur); syncControls(cur); }
+function stop(){ if(window.__timer){ clearInterval(window.__timer); window.__timer=null; } playBtn.textContent="▶ Play"; }
+slider.addEventListener("input", ()=>{ stop(); go(nearest(hours[cur].d, +slider.value)); });
+daySel.addEventListener("change", ()=>{ stop(); go(nearest(daySel.value, hours[cur].h)); });
+$("prevDay").addEventListener("click", ()=>{ stop(); const di=days.findIndex(x=>x.d===hours[cur].d); if(di>0) go(nearest(days[di-1].d, hours[cur].h)); });
+$("nextDay").addEventListener("click", ()=>{ stop(); const di=days.findIndex(x=>x.d===hours[cur].d); if(di<days.length-1) go(nearest(days[di+1].d, hours[cur].h)); });
+$("toLatest").addEventListener("click", ()=>{ stop(); go(hours.length-1); });
+playBtn.textContent="▶ Play";
+playBtn.addEventListener("click", ()=>{
+  if(window.__timer){ stop(); return; }
+  const d = hours[cur].d, hs = dayHours(d);
+  if(hours[cur].h >= Math.max(...hs)) go(at.get(d+"|"+Math.min(...hs)));   // at end of day: start from 12am
+  playBtn.textContent="❚❚ Pause";
+  window.__timer = setInterval(()=>{
+    const next = cur+1;
+    if(next>=hours.length || hours[next].d!==d){ stop(); return; }
+    go(next);
+  }, 350);
 });
+syncControls(cur);
 
 /* ---------- SVG helpers ---------- */
 const NS="http://www.w3.org/2000/svg";
