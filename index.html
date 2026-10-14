@@ -15,6 +15,7 @@
 <style>
 /* Layout: a monitoring console. Status strip + map first, then the month's trend, the region-by-day grid, and the time-of-day pattern. */
 :root{
+  --map-filter:grayscale(1) contrast(.82) brightness(1.06) opacity(.85);
   --bg:#e9eeef; --surface:#f7f9f9; --line:#cfd8da; --ink:#162125; --muted:#56656a; --faint:#8a989c;
   --accent:#1d5e6a; --accent-ink:#ffffff;
   --b1:#2f9e5b; --b2:#d39a00; --b3:#dd4f27; --b4:#8e1b3a;
@@ -25,12 +26,14 @@
   --f-data:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --map-filter:grayscale(1) brightness(.75) contrast(.9);
   --bg:#0e1416; --surface:#162023; --line:#2a383c; --ink:#e4ebec; --muted:#9aaaae; --faint:#6b7c80;
   --accent:#74b9c5; --accent-ink:#0e1416;
   --b1:#46b673; --b2:#e6ae22; --b3:#f06d45; --b4:#d0466c;
   --b1-soft:#1f3d2b; --b2-soft:#4a3c12; --b3-soft:#53291c; --b4-soft:#4d1a2a;
   --range:#74b9c5; --peak:#f06d45; color-scheme:dark}}
 :root[data-theme="dark"]{
+  --map-filter:grayscale(1) brightness(.75) contrast(.9);
   --bg:#0e1416; --surface:#162023; --line:#2a383c; --ink:#e4ebec; --muted:#9aaaae; --faint:#6b7c80;
   --accent:#74b9c5; --accent-ink:#0e1416;
   --b1:#46b673; --b2:#e6ae22; --b3:#f06d45; --b4:#d0466c;
@@ -79,6 +82,7 @@ header .titles{display:flex;flex-direction:column;gap:10px;min-width:0}
 .leaf{width:100%;height:clamp(340px,44vw,500px);border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--bg);z-index:0}
 
 .leaflet-container{font-family:var(--f-body)}
+.leaflet-tile-pane{filter:var(--map-filter)}
 .leaflet-control-attribution{font-size:10px!important;background:color-mix(in srgb,var(--surface) 85%,transparent)!important;color:var(--muted)!important}
 .leaflet-control-attribution a{color:var(--accent)!important}
 .leaflet-control-zoom a{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}
@@ -288,11 +292,11 @@ const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const fmtWeekday = d => WD[new Date(d+"T12:00:00+08:00").getUTCDay()];
 const fmtFull = t => `${fmtDay(t.slice(0,10))} ${t.slice(0,4)}, ${fmtHour(+t.slice(11,13))}`;
 
-/* ---------- map (Leaflet + OneMap) ---------- */
+/* ---------- map (Leaflet + OneMap, muted to grey) ---------- */
 const HOME=[[1.24,103.64],[1.46,104.0]];
 let LMAP=null, TILE=null, TILE_STYLE="", CIRCLES=[], MARKERS=[];
 const isDark = () => matchMedia("(prefers-color-scheme: dark)").matches ? document.documentElement.dataset.theme!=="light" : document.documentElement.dataset.theme==="dark";
-const OM_ATTR = '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> &copy; contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">Singapore Land Authority</a>';
+const MAP_ATTR = '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> &copy; contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">Singapore Land Authority</a>';
 function initMap(){
   if(LMAP || !window.L) return;
   const bounds = L.latLngBounds([1.144,103.596],[1.494,104.1]);
@@ -301,7 +305,7 @@ function initMap(){
   LMAP.on("click focus",()=>LMAP.scrollWheelZoom.enable());
   LMAP.on("mouseout blur",()=>LMAP.scrollWheelZoom.disable());
   REG.forEach(r=>{
-    CIRCLES.push(L.circle([r.lat,r.lon],{radius:3300, weight:1.5, fillOpacity:.28, interactive:false}).addTo(LMAP));
+    CIRCLES.push(L.circle([r.lat,r.lon],{radius:3600, weight:1.5, fillOpacity:.38, interactive:false}).addTo(LMAP));
     MARKERS.push(L.marker([r.lat,r.lon],{icon:L.divIcon({className:"",html:"",iconSize:null}), keyboard:false}).addTo(LMAP));
   });
 }
@@ -309,7 +313,7 @@ function setTiles(){
   const style = isDark() ? "Night" : "Grey";
   if(style===TILE_STYLE) return;
   if(TILE) LMAP.removeLayer(TILE);
-  TILE = L.tileLayer(`https://www.onemap.gov.sg/maps/tiles/${style}/{z}/{x}/{y}.png`,{detectRetina:true, maxZoom:19, minZoom:10, minNativeZoom:11, attribution:OM_ATTR}).addTo(LMAP);
+  TILE = L.tileLayer(`https://www.onemap.gov.sg/maps/tiles/${style}/{z}/{x}/{y}.png`,{detectRetina:true, maxZoom:19, minZoom:10, minNativeZoom:11, attribution:MAP_ATTR}).addTo(LMAP);
   TILE_STYLE = style;
 }
 function updateMap(hr){
