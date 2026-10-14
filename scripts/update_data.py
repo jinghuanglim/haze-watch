@@ -4,6 +4,8 @@ Runs in GitHub Actions every hour. Uses the DATA_GOV_API_KEY secret when set
 (higher rate limits); works without it too. Only standard library is used.
 """
 import datetime as dt
+import math
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import time
@@ -12,6 +14,8 @@ import urllib.parse
 import urllib.request
 
 API = "https://api-open.data.gov.sg/v2/real-time/api/pm25"
+WIND_API = "https://api-open.data.gov.sg/v2/real-time/api/wind-{kind}"
+WIND_LIMIT = int(os.environ.get("WIND_LIMIT", "150"))   # max hours of wind to backfill per run
 START = dt.date(2026, 10, 1)
 REGIONS = ["north", "south", "east", "west", "central"]
 OUT = os.path.join(os.path.dirname(__file__), "..", "data.json")
@@ -55,8 +59,40 @@ def fetch_day(day):
             return rows
 
 
+def wind_at(ts):
+    """Island-wide wind at one hour: vector-mean direction (where it blows FROM, degrees) and mean speed (km/h)."""
+    q = urllib.parse.urlencode({"date": ts[:19]})
+    d = get_json(WIND_API.format(kind="direction") + "?" + q)["data"].get("readings", [])
+    sp = get_json(WIND_API.format(kind="speed") + "?" + q)["data"].get("readings", [])
+    if not d or not sp:
+        return None
+    dirs = {x["stationId"]: x["value"] for x in d[0]["data"] if isinstance(x.get("value"), (int, float))}
+    spds = {x["stationId"]: x["value"] for x in sp[0]["data"] if isinstance(x.get("value"), (int, float))}
+    both = [k for k in dirs if k in spds]
+    if not both:
+        return None
+    u = sum(-spds[k] * math.sin(math.radians(dirs[k])) for k in both) / len(both)
+    v = sum(-spds[k] * math.cos(math.radians(dirs[k])) for k in both) / len(both)
+    frm = (math.degrees(math.atan2(-u, -v)) + 360) % 360
+    kmh = sum(spds[k] for k in both) / len(both) * 1.852
+    return [round(frm), round(kmh, 1)]
+
+
+def update_wind(old, hours):
+    w = old.get("wind") or {"t": [], "d": [], "s": []}
+    have = {t: [d, s] for t, d, s in zip(w["t"], w["d"], w["s"])}
+    missing = [t for t in hours if t not in have][-WIND_LIMIT:]   # newest first priority
+    if missing:
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            for t, res in zip(missing, ex.map(lambda t: wind_at(t), missing)):
+                if res:
+                    have[t] = res
+    ts = sorted(t for t in have if t in set(hours))
+    return {"t": ts, "d": [have[t][0] for t in ts], "s": [have[t][1] for t in ts]}
+
+
 def main():
-    rows = {}
+    rows, old = {}, {}
     if os.path.exists(OUT):
         with open(OUT) as f:
             old = json.load(f)
@@ -77,6 +113,12 @@ def main():
 
     ts = sorted(t for t in rows if t[:10] >= START.isoformat())
     data = {"regions": REGIONS, "t": ts, "v": [rows[t] for t in ts]}
+    try:
+        data["wind"] = update_wind(old, ts)
+    except Exception as e:                        # wind is a bonus; never block PM2.5 updates
+        print("Wind update skipped:", e)
+        if old.get("wind"):
+            data["wind"] = old["wind"]
     new_text = json.dumps(data, separators=(",", ":"))
     old_text = open(OUT).read().strip() if os.path.exists(OUT) else ""
     if new_text != old_text:

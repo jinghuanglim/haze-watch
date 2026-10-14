@@ -7,6 +7,14 @@
 <script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"dark";}catch(e){document.documentElement.dataset.theme="dark";}</script>
 <meta name="description" content="JH's haze diary: live PM2.5 across Singapore, with a map, day-by-day trend and daily patterns.">
 <title>Singapore Haze Watch</title>
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jinghuanglim.github.io/haze-watch/">
+<meta property="og:title" content="Singapore Haze Watch">
+<meta property="og:description" content="JH's hourly haze diary: live PM2.5 across Singapore, with a map, wind and daily patterns.">
+<meta property="og:image" content="https://jinghuanglim.github.io/haze-watch/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -44,7 +52,7 @@
   --cell-ink:#101314; --cell-ink-4:#ffffff;
   --city-back:#2a3438; --city-front:#151b1e; --win:#e8c675; color-scheme:dark}
 
-*{box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body);padding-bottom:48px}
 p{margin:0}
@@ -79,9 +87,17 @@ h2{font-size:clamp(1.35rem,2.6vw,1.7rem);line-height:1.2}
 /* JH */
 .mood{display:flex;align-items:flex-end;gap:14px;max-width:560px;min-width:0}
 .ava{width:clamp(88px,11vw,112px);flex:none;cursor:pointer;border:0;background:transparent;padding:0;filter:drop-shadow(0 6px 12px rgba(0,0,0,.25))}
-.ava svg{display:block;width:100%;height:auto;animation:bob 3.2s ease-in-out infinite}
+.ava{position:relative;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.ava:focus:not(:focus-visible){outline:none}
+.ava svg{display:block;width:100%;height:auto;animation:idle 4s ease-in-out infinite;transform-origin:50% 90%}
+.ava svg .eyes{transform-box:fill-box;transform-origin:center;animation:blink 4.6s infinite}
 .ava.shake svg{animation:shake .5s ease-in-out 2}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.ava.boing svg{animation:boing .65s cubic-bezier(.3,1.6,.5,1)}
+@keyframes idle{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-2px) rotate(-2deg)}50%{transform:translateY(-4px) rotate(0)}75%{transform:translateY(-2px) rotate(2deg)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes boing{0%{transform:none}18%{transform:translateY(3px) scale(1.1,.88)}50%{transform:translateY(-16px) scale(.94,1.07) rotate(-4deg)}78%{transform:translateY(0) scale(1.04,.96)}100%{transform:none}}
+.puff{position:absolute;left:50%;top:18%;pointer-events:none;font-size:20px;line-height:1;animation:rise 1.1s ease-out forwards}
+@keyframes rise{0%{transform:translate(-50%,0) scale(.6);opacity:0}15%{opacity:1}100%{transform:translate(calc(-50% + var(--dx)),-60px) scale(1.25) rotate(var(--rot));opacity:0}}
 @keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
 .bubble{position:relative;background:var(--surface);border-radius:16px 16px 16px 4px;padding:12px 15px;min-width:0;display:flex;flex-direction:column;gap:4px;
   box-shadow:0 6px 20px rgba(0,0,0,.14);transform-origin:left bottom;margin-bottom:18px}
@@ -186,7 +202,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .gauge .lbls span:first-child{transform:none}
 .ghint{font-size:.78rem;color:var(--faint)}
 .regions{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
-.regions li{display:grid;grid-template-columns:5.5em 1fr 3em;align-items:center;gap:10px;font-size:.92rem}
+.regions li{display:grid;grid-template-columns:7em 1fr 3em;align-items:center;gap:10px;font-size:.92rem}
 .regions .bar{height:8px;border-radius:4px;background:color-mix(in srgb,var(--ink) 10%,transparent);position:relative;overflow:hidden}
 .regions .bar span{position:absolute;inset:0 auto 0 0;border-radius:4px;transition:width .25s}
 .regions .val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
@@ -199,6 +215,33 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .fact .k{font-size:.82rem;color:var(--muted)}
 .fact .v{font:400 1.75rem/1.1 var(--f-display);font-variant-numeric:tabular-nums}
 .fact .d{font-size:.82rem;color:var(--muted)}
+
+/* near me */
+.me{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.me b{color:var(--ink)}
+.me .lnk{font:600 .86rem/1 var(--f-body);background:transparent;border:0;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px 0}
+.me .val{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.me .chipb{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;font-size:.8rem;font-weight:600;color:var(--ink)}
+.me .chipb i{width:7px;height:7px;border-radius:50%}
+.me select{font:500 .88rem/1 var(--f-body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 8px}
+.me .msg{flex-basis:100%;font-size:.8rem;color:var(--faint)}
+.regions li.you span:first-child{font-weight:700;color:var(--ink)}
+.regions li.you span:first-child::after{content:"you";font:600 .66rem/1 var(--f-body);margin-left:6px;padding:2px 5px;border-radius:4px;background:var(--ink);color:var(--bg);vertical-align:2px}
+.mk.you{outline:2px solid var(--ink);outline-offset:1px}
+/* wind */
+.windbox{display:flex;align-items:center;gap:9px;background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:10px;padding:8px 12px 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,.18);color:var(--ink)}
+.windbox svg{width:38px;height:38px;flex:none}
+.windbox .wa{transition:transform .5s ease;transform-origin:20px 20px}
+.windbox b{display:block;font:600 .86rem/1.15 var(--f-body)}
+.windbox span{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+/* grid toggle */
+.gridtabs{display:inline-flex;gap:16px;margin-bottom:14px}
+.gridtabs button{font:600 .9rem/1 var(--f-body);border:0;background:transparent;color:var(--faint);padding:6px 0;cursor:pointer;border-bottom:2px solid transparent}
+.gridtabs button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.hm.hours{grid-template-columns:4em repeat(24,minmax(9px,1fr));gap:2px}
+.hm.hours .c{height:clamp(14px,2.4vw,26px);border-radius:2px}
+.hm .hl{font-size:.7rem;color:var(--faint);text-align:center;white-space:nowrap}
+.hm .c.empty{background:color-mix(in srgb,var(--ink) 6%,transparent)!important}
 
 /* ---------- diary sections ---------- */
 .sect{min-width:0}
@@ -215,7 +258,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .tip b{font-weight:700}
 .hm-scroll{overflow-x:auto}
 .hm{display:grid;grid-template-columns:4.2em repeat(var(--n),minmax(14px,1fr));gap:3px;font-size:.82rem;min-width:min-content}
-.hm .rl{color:var(--muted);display:flex;align-items:center}
+.hm .rl{color:var(--muted);display:flex;align-items:center;white-space:nowrap}
 .hm .c{height:clamp(22px,3.2vw,32px);border-radius:3px;cursor:default;display:grid;place-items:center;color:var(--cell-ink);font:600 .72rem/1 var(--f-body);font-variant-numeric:tabular-nums}
 .hm .c.b4{color:var(--cell-ink-4)}
 .hm:not(.nums) .c::after{content:none}
@@ -267,7 +310,7 @@ footer a{color:var(--ink)}
       <div class="keyrow" id="keyRow"></div>
       <div class="when"><span class="today" id="todayTag">Latest</span><span class="when-txt" id="mapDate"></span></div>
       <h2 class="maphead" id="mapTitle">Readings by region</h2>
-      <p class="maphint">Bigger, stronger circles mean more haze. Tap a region for its reading.</p>
+      <p class="maphint">Bigger, stronger circles mean more haze. The arrow shows where the wind is blowing.</p>
       <div class="timebar">
         <div class="dayrow">
           <button class="btn ghost icon" id="prevDay" type="button" aria-label="Previous day">‹</button>
@@ -293,6 +336,7 @@ footer a{color:var(--ink)}
     <div class="side">
       <div class="now">
         <h2 id="nowHead">Worst spot right now</h2>
+        <div class="me" id="me"></div>
         <div class="big"><span class="n" id="nowNum">–</span><span class="unit">µg/m³ in <span id="nowRegion"></span></span></div>
         <div><span class="pill" id="nowPill"><i></i><span></span></span></div>
         <div class="gauge" id="gauge" role="group" aria-label="PM2.5 bands. Choose a band to see its advice."></div>
@@ -323,7 +367,11 @@ footer a{color:var(--ink)}
     <div class="sec-head">
       <span class="kicker">Who's suffering most</span>
       <h2 id="hmHead">Where it was worst</h2>
-      <p class="sub">Each square is a region's daily average, coloured by NEA band. Hover or tap for details.</p>
+      <p class="sub" id="hmSub">Each square is a region's daily average, coloured by NEA band. Hover or tap for details.</p>
+    </div>
+    <div class="gridtabs" role="group" aria-label="Grid view">
+      <button type="button" id="gridReg" aria-pressed="true">By region</button>
+      <button type="button" id="gridHour" aria-pressed="false">By hour</button>
     </div>
     <div class="legend" id="hmLegend"></div>
     <div class="hm-scroll"><div class="hm" id="hm"></div></div>
@@ -480,7 +528,7 @@ function avatarSVG(m){
     <path d="M24 54 Q20 22 52 17 Q80 12 93 29 Q101 40 96 54 Q91 37 74 34 Q61 31 50 39 Q36 35 30 52 Z" fill="${hair}"/>
     <path d="M46 22 Q58 4 80 14 Q68 14 60 22 Z" fill="${hair}"/>
     <g stroke="${hair}" stroke-width="4" fill="none" stroke-linecap="round">${brows}</g>
-    ${eyes}
+    <g class="eyes">${eyes}</g>
     <ellipse cx="36" cy="72" rx="6" ry="3.5" fill="#f08a8a" opacity="${m===0?.55:.3}"/><ellipse cx="84" cy="72" rx="6" ry="3.5" fill="#f08a8a" opacity="${m===0?.55:.3}"/>
     <ellipse cx="60" cy="67" rx="4.5" ry="3.2" fill="${skin2}"/>
     ${mouth}${mask}
@@ -546,7 +594,7 @@ function say(m){
     else TYPE_T = setTimeout(()=>el.classList.remove("typing"), 900);
   })();
 }
-function setMood(avg){
+function setMood(avg, where){
   const m = bandIx(avg), b = BANDS[m], box = $("mood");
   setSky(m);
   box.style.setProperty("--mbg", `var(${b.soft})`);
@@ -558,9 +606,17 @@ function setMood(avg){
     LAST_MOOD = m; LAST_LINE = -1;
     say(m);
   }
-  $("moodNote").textContent = `Island average ${Math.round(avg)} µg/m³ · ${b.label}`;
+  $("moodNote").textContent = `${where||"Island average"} ${Math.round(avg)} µg/m³ · ${b.label}`;
 }
-$("ava").addEventListener("click", ()=>{ if(LAST_MOOD>=0) say(LAST_MOOD); });
+const PUFFS = [["💖","✨","💖"],["💦","💧","💦"],["💨","😷","💨"],["💨","🌫️","💨"]];
+$("ava").addEventListener("click", ()=>{
+  if(LAST_MOOD<0) return;
+  const a=$("ava"); a.classList.remove("boing","shake"); void a.offsetWidth; a.classList.add("boing");
+  if(!reduceMotion) PUFFS[LAST_MOOD].forEach((ch,i)=>{ const s=document.createElement("span"); s.className="puff"; s.textContent=ch;
+    s.style.setProperty("--dx", `${(i-1)*34 + (Math.random()*12-6)}px`); s.style.setProperty("--rot", `${(i-1)*20}deg`); s.style.animationDelay=`${i*70}ms`;
+    a.appendChild(s); setTimeout(()=>s.remove(), 1400); });
+  say(LAST_MOOD);
+});
 setInterval(()=>{ if(LAST_MOOD>=0 && !window.__timer && !document.hidden) say(LAST_MOOD); }, 12000);   // a new line every 12s while idle
 
 /* ---------- map (Leaflet + OneMap, muted to grey) ---------- */
@@ -600,9 +656,73 @@ function updateMap(hr){
     const v=hr.vals[i], b=band(v), col=css(b.c), tipTxt=`${r.name}: ${v} µg/m³ · ${b.label}`;
     CIRCLES[i].setStyle({color:col, fillColor:col, fillOpacity:circleFill(v)}).setRadius(circleRadius(v));
     CIRCLES[i].unbindTooltip().bindTooltip(tipTxt,{direction:"top",sticky:true});
-    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})"><i></i>${r.name}</div>`}));
+    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk${i===MY?" you":""}" style="--c:var(${b.c})"><i></i>${r.name}${i===MY?" · you":""}</div>`}));
     MARKERS[i].unbindTooltip().bindTooltip(tipTxt,{direction:"top",offset:[0,-14]});
   });
+}
+
+/* ---------- wind control on the map ---------- */
+const COMPASS = ["N","NE","E","SE","S","SW","W","NW"];
+const compass = deg => COMPASS[Math.round(((deg%360)+360)%360/45)%8];
+let WINDCTL = null;
+function ensureWindCtl(){
+  if(WINDCTL || !LMAP) return;
+  const c = L.control({position:"topright"});
+  c.onAdd = () => { const d=L.DomUtil.create("div","windbox"); d.id="windbox";
+    d.innerHTML = `<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-opacity=".2"/>
+      <text x="20" y="8" text-anchor="middle" font-size="6" fill="currentColor" opacity=".6">N</text>
+      <g class="wa" id="windArrow"><path d="M20 31 L20 11" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M14 16 L20 9 L26 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
+      <div><b id="windTxt">Wind</b><span id="windSub"></span></div>`;
+    L.DomEvent.disableClickPropagation(d); return d; };
+  c.addTo(LMAP); WINDCTL = c;
+}
+function setWind(w){
+  ensureWindCtl(); const box=$("windbox"); if(!box) return;
+  if(!w){ box.hidden = true; return; }
+  box.hidden = false;
+  const [deg, kmh, stale] = w;
+  if(kmh < 3){ $("windTxt").textContent = "Calm"; $("windSub").textContent = `${kmh.toFixed(0)} km/h`; $("windArrow").style.opacity=.25; }
+  else { $("windTxt").textContent = `Wind from ${compass(deg)}`; $("windSub").textContent = `${kmh.toFixed(0)} km/h${stale?" · earlier reading":""}`; $("windArrow").style.opacity=1; }
+  $("windArrow").style.transform = `rotate(${(deg+180)%360}deg)`;      // arrow points where the wind is going
+}
+
+/* ---------- near me ---------- */
+let MY = (()=>{ try{ const v=localStorage.getItem("myRegion"); return v===null?null:+v; }catch(e){ return null; } })();
+let ME_MSG = "", ME_PICK = false;
+function saveMy(v){ MY=v; try{ v===null?localStorage.removeItem("myRegion"):localStorage.setItem("myRegion",v); }catch(e){} ME_PICK=false; ME_MSG=""; window.__now && window.__now(); }
+function nearestRegion(lat,lon){
+  let best=0, bd=1e9;
+  REG.forEach((r,i)=>{ const dx=(r.lon-lon)*Math.cos(lat*Math.PI/180), dy=r.lat-lat, d=dx*dx+dy*dy; if(d<bd){bd=d;best=i;} });
+  return best;
+}
+function locate(){
+  if(!navigator.geolocation){ ME_MSG="Location isn't available here. Pick your area instead."; ME_PICK=true; renderMe(); return; }
+  ME_MSG="Finding you…"; renderMe();
+  navigator.geolocation.getCurrentPosition(p=>{
+    const {latitude:la, longitude:lo} = p.coords;
+    if(la<1.15||la>1.48||lo<103.55||lo>104.1){ ME_MSG="You seem to be outside Singapore. Pick an area instead."; ME_PICK=true; renderMe(); return; }
+    saveMy(nearestRegion(la,lo));
+  }, ()=>{ ME_MSG="Couldn't get your location. Pick your area instead."; ME_PICK=true; renderMe(); }, {timeout:10000, maximumAge:600000});
+}
+function renderMe(hr){
+  const el=$("me"); if(!el) return;
+  hr = hr || window.__hr;
+  const picker = `<select id="mePick" aria-label="Pick your area"><option value="">Pick your area…</option>${REG.map((r,i)=>`<option value="${i}"${i===MY?" selected":""}>${r.name}</option>`).join("")}</select>`;
+  if(MY===null || ME_PICK){
+    el.innerHTML = MY===null && !ME_PICK
+      ? `<span>📍</span><button class="lnk" id="meLoc" type="button">Show my area</button><span>or</span><button class="lnk" id="mePickBtn" type="button">pick one</button>${ME_MSG?`<span class="msg">${ME_MSG}</span>`:""}`
+      : `<span>📍</span>${picker}${MY!==null?`<button class="lnk" id="meCancel" type="button">Cancel</button>`:""}${ME_MSG?`<span class="msg">${ME_MSG}</span>`:""}`;
+  } else {
+    const v = hr ? hr.vals[MY] : null, b = v!=null ? band(v) : null;
+    el.innerHTML = `<span>📍 Your area:</span><b>${REG[MY].name}</b>${b?`<span class="val">${v}</span><span class="chipb" style="background:var(${b.soft})"><i style="background:var(${b.c})"></i>${b.label}</span>`:""}
+      <button class="lnk" id="meChange" type="button">Change</button><button class="lnk" id="meClear" type="button" aria-label="Stop showing my area">Clear</button>`;
+  }
+  $("meLoc") && ($("meLoc").onclick = locate);
+  $("mePickBtn") && ($("mePickBtn").onclick = ()=>{ ME_PICK=true; ME_MSG=""; renderMe(); });
+  $("mePick") && ($("mePick").onchange = e=>{ if(e.target.value!=="") saveMy(+e.target.value); });
+  $("meCancel") && ($("meCancel").onclick = ()=>{ ME_PICK=false; ME_MSG=""; renderMe(); });
+  $("meChange") && ($("meChange").onclick = ()=>{ ME_PICK=true; renderMe(); });
+  $("meClear") && ($("meClear").onclick = ()=>saveMy(null));
 }
 
 /* ---------- SVG helpers ---------- */
@@ -629,6 +749,11 @@ const days = [...dayMap].map(([d,hs]) => {
   return {d, avg:mean(hs.map(h=>h.avg)), reg, lo:Math.min(...reg), hi:Math.max(...reg), peak:pv, peakReg:pr, peakT:pt};
 });
 const last = hours[hours.length-1];
+const WIND = new Map(); if(DATA.wind) DATA.wind.t.forEach((t,i)=>WIND.set(t,[DATA.wind.d[i], DATA.wind.s[i]]));
+function windFor(i){                       // this hour, or the closest earlier hour within 3h
+  for(let k=0;k<=3 && i-k>=0;k++){ const w=WIND.get(hours[i-k].t); if(w) return [w[0],w[1],k>0]; }
+  return null;
+}
 
 /* ---------- summary numbers ---------- */
 const prev24 = hours[Math.max(0,hours.length-25)];
@@ -683,10 +808,13 @@ function renderNow(i){
   setGauge(hr.max);
   const scale = Math.max(160, ...hr.vals);
   $("regionList").innerHTML = REG.map((r,k)=>({r,v:hr.vals[k]})).sort((a,b)=>b.v-a.v).map(({r,v})=>
-    `<li><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
+    `<li class="${REG.indexOf(r)===MY?"you":""}"><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
   CUR_BAND = BANDS.indexOf(b); showAdvice(CUR_BAND,false);
-  setMood(hr.avg);
+  window.__hr = hr;
+  if(MY!==null) setMood(hr.vals[MY], `Your area (${REG[MY].name})`); else setMood(hr.avg);
   updateMap(hr);
+  setWind(windFor(i));
+  renderMe(hr);
 }
 
 /* ---------- time controls ---------- */
@@ -783,8 +911,26 @@ function drawDaily(){
 }
 
 /* ---------- heatmap: same four NEA bands, numbers shown when there is room ---------- */
-function drawHeat(){
-  const hm=$("hm"); hm.style.setProperty("--n",days.length);
+let GRID = window.__grid || "region";
+function drawHeat(){ GRID==="hour" ? drawHourGrid() : drawRegionGrid(); $("gridReg").setAttribute("aria-pressed",GRID==="region"); $("gridHour").setAttribute("aria-pressed",GRID==="hour"); }
+function drawHourGrid(){
+  const hm=$("hm"); hm.style.setProperty("--n",24); hm.classList.add("hours");
+  const byKey = new Map(hours.map(h=>[h.d+"|"+h.h, h]));
+  let html = `<div></div>` + Array.from({length:24},(_,hh)=>`<div class="hl">${hh%3===0?fmtHour(hh).replace("m",""):""}</div>`).join("");
+  [...days].reverse().forEach(d=>{
+    html += `<div class="rl">${fmtWeekday(d.d)} ${+d.d.slice(8,10)}</div>`;
+    for(let hh=0; hh<24; hh++){ const x=byKey.get(d.d+"|"+hh);
+      if(!x){ html+=`<div class="c empty"></div>`; continue; }
+      const v=Math.round(x.avg), bi=bandIx(v);
+      html+=`<div class="c${bi===3?" b4":""}" style="background:color-mix(in srgb, var(${BANDS[bi].c}) 88%, var(--surface))" data-t="${fmtWeekday(d.d)} ${fmtDay(d.d)}, ${fmtHour(hh)}" data-v="${v}" data-b="${BANDS[bi].label}"></div>`; }
+  });
+  hm.innerHTML = html;
+  $("hmSub").textContent = "Each row is a day, newest at the top. Each square is the island average for that hour.";
+  wireHeat(); fitHeat();
+}
+function drawRegionGrid(){
+  $("hmSub").textContent = "Each square is a region's daily average, coloured by NEA band. Hover or tap for details.";
+  const hm=$("hm"); hm.style.setProperty("--n",days.length); hm.classList.remove("hours");
   const rows = [...REG.map((r,i)=>({name:r.name, get:d=>d.reg[i]})), {name:"Island", get:d=>d.avg}];
   let html="";
   rows.forEach((row,ri)=>{
@@ -797,7 +943,10 @@ function drawHeat(){
     const show=(i%4===0 && i<days.length-2)||lastI; return `<div class="dl${first?" first":""}${lastI?" last":""}">${show?fmtDay(d.d):""}</div>`; }).join("");
   hm.innerHTML=html;
   $("hmLegend").innerHTML = BANDS.map((b,i)=>`<span><span class="sw" style="background:var(${b.c})"></span>${b.label} ${RANGES[i]}</span>`).join("");
-  fitHeat();
+  wireHeat(); fitHeat();
+}
+function wireHeat(){
+  const hm=$("hm");
   if(!hm.dataset.wired){
     const wrap = hm.parentElement.parentElement; wrap.style.position="relative";
     const tip = tipFor(wrap);
@@ -805,13 +954,16 @@ function drawHeat(){
       const c=e.target.closest(".c"); if(!c){ tip.hidden=true; return; }
       const r=c.getBoundingClientRect(), w=wrap.getBoundingClientRect();
       tip.hidden=false; tip.style.left=Math.min(Math.max(r.left-w.left+r.width/2,70),w.width-70)+"px"; tip.style.top=(r.top-w.top-6)+"px";
-      tip.innerHTML=`<b>${c.dataset.t}</b><br>Daily average ${c.dataset.v} µg/m³ · ${c.dataset.b}`;
+      tip.innerHTML=`<b>${c.dataset.t}</b><br>${GRID==="hour"?"Island average":"Daily average"} ${c.dataset.v} µg/m³ · ${c.dataset.b}`;
     });
     hm.addEventListener("pointerleave",()=>tip.hidden=true);
     hm.dataset.wired="1";
   }
 }
-function fitHeat(){ const hm=$("hm"), c=hm.querySelector(".c"); if(c) hm.classList.toggle("nums", c.getBoundingClientRect().width >= 30); }
+function fitHeat(){ const hm=$("hm"), c=hm.querySelector(".c:not(.empty)"); if(c) hm.classList.toggle("nums", c.getBoundingClientRect().width >= 30); }
+["gridReg","gridHour"].forEach(id=>{ const o=$(id); o.replaceWith(o.cloneNode(true)); });
+$("gridReg").addEventListener("click",()=>{ GRID=window.__grid="region"; drawHeat(); });
+$("gridHour").addEventListener("click",()=>{ GRID=window.__grid="hour"; drawHeat(); });
 
 /* ---------- time of day ---------- */
 function drawDiurnal(){
@@ -843,7 +995,7 @@ function drawDiurnal(){
 function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
 drawAll();
 window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); fitHeat(); }; window.__font=()=>renderNow(cur);
-window.__latest=last.t;
+window.__latest=last.t; window.__now=()=>renderNow(cur);
 }
 
 /* ---------- data loading ---------- */
@@ -862,10 +1014,19 @@ async function fetchLiveDay(d){
   }while(tok);
   return rows;
 }
+async function liveWindAt(ts){
+  const q="?date="+encodeURIComponent(ts.slice(0,19));
+  const [a,b] = await Promise.all(["direction","speed"].map(k=>fetch(`https://api-open.data.gov.sg/v2/real-time/api/wind-${k}${q}`,{cache:"no-store"}).then(r=>r.json())));
+  const dr=a.data?.readings?.[0]?.data||[], sr=b.data?.readings?.[0]?.data||[];
+  const sp=Object.fromEntries(sr.map(x=>[x.stationId,x.value])); const both=dr.filter(x=>typeof x.value==="number" && typeof sp[x.stationId]==="number");
+  if(!both.length) return null;
+  let u=0,v=0,s=0; both.forEach(x=>{ const k=sp[x.stationId], r=x.value*Math.PI/180; u+=-k*Math.sin(r); v+=-k*Math.cos(r); s+=k; });
+  return [Math.round((Math.atan2(-u,-v)*180/Math.PI+360)%360), +(s/both.length*1.852).toFixed(1)];
+}
 function mergeRows(data, rows){
   const m = new Map(data.t.map((t,i)=>[t,data.v[i]]));
   rows.forEach(([t,v])=>{ if(t.slice(0,10)>=START) m.set(t,v); });
-  const t=[...m.keys()].sort(); return {regions:data.regions||ORDER, t, v:t.map(k=>m.get(k))};
+  const t=[...m.keys()].sort(); return {regions:data.regions||ORDER, t, v:t.map(k=>m.get(k)), wind:data.wind};
 }
 const clock = d => new Intl.DateTimeFormat("en-SG",{timeZone:"Asia/Singapore",hour:"numeric",minute:"2-digit"}).format(d);
 function setLive(ok,msg){ const l=$("live"); l.classList.toggle("stale",!ok); l.querySelector("span").textContent=msg; }
@@ -883,6 +1044,10 @@ async function load(manual){
         const today=sgDate(), from=lastSaved.slice(0,10);
         const ds = from<today ? [from,today] : [today];     // also fill the gap from the last saved day
         for(const d of ds) data = mergeRows(data, await fetchLiveDay(d));
+        const w = data.wind || {t:[],d:[],s:[]}, have = new Set(w.t);
+        const need = data.t.filter(t=>!have.has(t)).slice(-4);           // newest few hours only
+        for(const t of need){ const r = await liveWindAt(t).catch(()=>null); if(r){ w.t.push(t); w.d.push(r[0]); w.s.push(r[1]); } }
+        data.wind = w;
       }catch(e){ /* keep data.json as is */ }
       if(manual && window.__timer){ clearInterval(window.__timer); window.__timer=null; }
     }
