@@ -76,6 +76,20 @@ header .titles{display:flex;flex-direction:column;gap:10px;min-width:0}
 .live.stale i{background:var(--b2);animation:none}
 @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--b1) 60%,transparent)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
 
+/* mood avatar */
+.mood{display:flex;align-items:center;gap:14px;flex:1 1 300px;max-width:440px;min-width:0}
+.ava{width:clamp(76px,9vw,92px);flex:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.25))}
+.ava svg{display:block;width:100%;height:auto;animation:bob 3.2s ease-in-out infinite}
+.ava.shake svg{animation:shake .5s ease-in-out 2}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+.bubble{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 13px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.bubble::before{content:"";position:absolute;left:-7px;top:50%;width:12px;height:12px;background:var(--surface);border-left:1px solid var(--line);border-bottom:1px solid var(--line);transform:translateY(-50%) rotate(45deg)}
+.bubble b{font:700 .78rem/1.2 var(--f-body);text-transform:uppercase;letter-spacing:.07em;color:var(--mc)}
+.bubble span{font-size:.92rem;line-height:1.35;color:var(--ink)}
+.bubble small{font-size:.75rem;color:var(--faint)}
+@media (max-width:600px){.mood{max-width:none;flex-basis:100%}}
+
 /* cards (top row only) */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:clamp(16px,2.4vw,24px);min-width:0}
 .sec-head{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
@@ -215,6 +229,10 @@ footer a{color:var(--accent)}
       <span class="eyebrow">PM2.5 · hourly readings · 5 regions</span>
       <h1>Singapore Haze Watch</h1>
       <p class="sub" id="lede">Hourly PM2.5 across Singapore since 1 Oct.</p>
+    </div>
+    <div class="mood" id="mood" aria-live="polite">
+      <div class="ava" id="ava" role="img" aria-label="Cartoon of JH reacting to the haze"></div>
+      <div class="bubble"><b id="moodName"></b><span id="moodLine"></span><small id="moodNote"></small></div>
     </div>
     <div class="hdr-side">
       <div class="hdr-btns">
@@ -375,6 +393,86 @@ function buildGauge(){
 function setGauge(v){ buildGauge(); $("gMark").style.left = Math.min(v,GMAX-2)/GMAX*100+"%"; }
 $("keyRow").innerHTML = BANDS.map((b,i)=>`<span><i style="background:var(${b.c})"></i>${b.label} ${RANGES[i]}</span>`).join("");
 
+/* ---------- JH avatar: reacts to the island average ---------- */
+const MOODS = [
+  {name:"Happy JH",  line:"Air's clean! Going for a jog, then kopi."},
+  {name:"Meh JH",    line:"Bit hazy leh. Short walk only, no jogging today."},
+  {name:"Masked JH", line:"Mask on. Windows shut, air purifier on full blast."},
+  {name:"Hiding JH", line:"Nope. Not leaving the house. Food delivery only."}
+];
+function avatarSVG(m){
+  const skin="#f3c9a1", skin2="#e6b087", hair="#1d1918", ink="#1a1a1a", frame="#5b5048";
+  const brows = m>=2
+    ? `<path d="M36 49 Q44 46 52 43" /><path d="M68 43 Q76 46 84 49" />`          // worried
+    : m===1 ? `<path d="M36 46 Q44 45 52 46" /><path d="M68 46 Q76 45 84 46" />`   // flat
+    : `<path d="M36 47 Q44 42 52 45" /><path d="M68 45 Q76 42 84 47" />`;          // raised, happy
+  const eyes = m===0
+    ? `<path d="M40 59 Q44 54 48 59" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M72 59 Q76 54 80 59" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+    : m===3
+    ? `<path d="M40 55 L47 59 L40 62" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M80 55 L73 59 L80 62" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+    : `<circle cx="44" cy="58" r="3.4" fill="${ink}"/><circle cx="76" cy="58" r="3.4" fill="${ink}"/><circle cx="45.2" cy="56.8" r="1.1" fill="#fff"/><circle cx="77.2" cy="56.8" r="1.1" fill="#fff"/>`;
+  const mouth = m===0
+    ? `<path d="M48 75 Q60 89 72 75 Z" fill="#b8423f"/><path d="M53 81 Q60 86 67 81 Q60 79 53 81Z" fill="#ef8f8a"/>`
+    : m===1 ? `<path d="M50 79 Q55 76 60 79 Q65 82 70 79" stroke="#8a3b38" stroke-width="2.6" fill="none" stroke-linecap="round"/>`
+    : "";
+  const mask = m===2
+    ? `<path d="M31 64 Q60 59 89 64 L85 84 Q60 95 35 84 Z" fill="#eef3f6" stroke="#b9c5cd" stroke-width="1.5"/>
+       <path d="M38 71 Q60 67 82 71 M38 77 Q60 74 82 77" stroke="#cfd8de" stroke-width="1.4" fill="none"/>
+       <path d="M31 65 L24 60 M35 83 L25 66 M89 65 L96 60 M85 83 L95 66" stroke="#cfd8de" stroke-width="1.6"/>`
+    : m===3
+    ? `<path d="M30 63 Q60 57 90 63 L86 85 Q60 97 34 85 Z" fill="#5f686e" stroke="#3f464b" stroke-width="1.5"/>
+       <circle cx="60" cy="86" r="10" fill="#7b858b" stroke="#3f464b" stroke-width="1.5"/><circle cx="60" cy="86" r="5" fill="#4a5257"/>
+       <path d="M30 64 L23 58 M90 64 L97 58" stroke="#3f464b" stroke-width="2"/>`
+    : "";
+  const extras = [
+    m===0 ? `<path d="M100 18 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2z" fill="#f6c343"/><path d="M15 32 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5 -4 -4 -1.5 4 -1.5z" fill="#f6c343"/>` : "",
+    m===1 ? `<path d="M93 33 Q98 42 93 46 Q88 42 93 33Z" fill="#8fd3ff" stroke="#5cb8ea" stroke-width="1"/>` : "",
+    m>=2 ? `<path d="M41 63 Q39 70 42 73 Q45 70 43 63Z" fill="#8fd3ff" opacity=".9"/>` : "",
+    m===3 ? `<path d="M79 63 Q77 71 80 75 Q83 71 81 63Z" fill="#8fd3ff" opacity=".9"/>` : ""
+  ].join("");
+  const haze = m>=1 ? `<g fill="#9aa3a8" opacity="${[0,.18,.3,.45][m]}"><circle cx="14" cy="96" r="14"/><circle cx="32" cy="108" r="16"/><circle cx="96" cy="104" r="16"/><circle cx="110" cy="88" r="12"/>${m>=2?`<circle cx="12" cy="40" r="10"/><circle cx="108" cy="30" r="9"/>`:""}</g>` : "";
+  return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><clipPath id="avaClip"><circle cx="60" cy="60" r="58"/></clipPath></defs>
+    <g clip-path="url(#avaClip)">
+    <circle cx="60" cy="60" r="58" fill="var(--mbg)"/>
+    ${haze}
+    <path d="M17 120 Q21 92 60 90 Q99 92 103 120 Z" fill="#f2a493"/>
+    <path d="M45 92 Q60 103 75 92" stroke="#d98473" stroke-width="3" fill="none"/>
+    <rect x="50" y="80" width="20" height="13" rx="4" fill="${skin2}"/>
+    <ellipse cx="25" cy="62" rx="5" ry="7" fill="${skin2}"/><ellipse cx="95" cy="62" rx="5" ry="7" fill="${skin2}"/>
+    <ellipse cx="60" cy="60" rx="35" ry="33" fill="${skin}"/>
+    <ellipse cx="60" cy="84" rx="15" ry="6" fill="#5a4a40" opacity=".13"/><ellipse cx="60" cy="74.5" rx="9" ry="2.6" fill="#5a4a40" opacity=".13"/>
+    <path d="M24 54 Q20 22 52 17 Q80 12 93 29 Q101 40 96 54 Q91 37 74 34 Q61 31 50 39 Q36 35 30 52 Z" fill="${hair}"/>
+    <path d="M46 22 Q58 4 80 14 Q68 14 60 22 Z" fill="${hair}"/>
+    <g stroke="${hair}" stroke-width="4" fill="none" stroke-linecap="round">${brows}</g>
+    ${eyes}
+    <ellipse cx="36" cy="72" rx="6" ry="3.5" fill="#f08a8a" opacity="${m===0?.55:.3}"/><ellipse cx="84" cy="72" rx="6" ry="3.5" fill="#f08a8a" opacity="${m===0?.55:.3}"/>
+    <ellipse cx="60" cy="67" rx="4.5" ry="3.2" fill="${skin2}"/>
+    ${mouth}${mask}
+    <g fill="rgba(255,255,255,.14)" stroke="#9aa1a6" stroke-width="1.4"><rect x="33" y="50" width="22" height="16" rx="3.5"/><rect x="65" y="50" width="22" height="16" rx="3.5"/></g>
+    <path d="M32.5 51.5 L55.5 51.5 M64.5 51.5 L87.5 51.5" stroke="${frame}" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M55 54 Q60 50.5 65 54" stroke="${frame}" stroke-width="2" fill="none"/>
+    <path d="M33 52.5 L25 55.5 M87 52.5 L95 55.5" stroke="${frame}" stroke-width="2"/>
+    ${extras}
+    </g>
+  </svg>`;
+}
+let LAST_MOOD = -1;
+function setMood(avg){
+  const m = bandIx(avg), b = BANDS[m];
+  const box = $("mood");
+  box.style.setProperty("--mbg", `var(${b.soft})`);
+  box.style.setProperty("--mc", `var(${b.c})`);
+  if(m !== LAST_MOOD){
+    $("ava").innerHTML = avatarSVG(m);
+    if(LAST_MOOD !== -1){ const a=$("ava"); a.classList.remove("shake"); void a.offsetWidth; a.classList.add("shake"); }
+    $("moodName").textContent = MOODS[m].name;
+    $("moodLine").textContent = MOODS[m].line;
+    LAST_MOOD = m;
+  }
+  $("moodNote").textContent = `Island average ${Math.round(avg)} µg/m³ · ${b.label}`;
+}
+
 /* ---------- map (Leaflet + OneMap, muted to grey) ---------- */
 const HOME=[[1.262,103.64],[1.468,103.975]];
 let LMAP=null, TILE=null, TILE_STYLE="", CIRCLES=[], MARKERS=[];
@@ -497,6 +595,7 @@ function renderNow(i){
   $("regionList").innerHTML = REG.map((r,k)=>({r,v:hr.vals[k]})).sort((a,b)=>b.v-a.v).map(({r,v})=>
     `<li><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
   CUR_BAND = BANDS.indexOf(b); showAdvice(CUR_BAND,false);
+  setMood(hr.avg);
   updateMap(hr);
 }
 
