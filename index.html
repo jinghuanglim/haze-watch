@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Live PM2.5 haze readings across Singapore: map, 32-day trend and daily patterns.">
+<meta name="description" content="Live PM2.5 haze readings across Singapore: map, daily trend since 1 October and daily patterns.">
 <title>Singapore Haze Watch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -147,7 +147,7 @@ footer a{color:var(--accent)}
   </header>
   <div class="loading" id="loading">
     <span class="eyebrow">Live data</span>
-    <h2 id="loadMsg">Loading the last 32 days from data.gov.sg…</h2>
+    <h2 id="loadMsg">Loading readings since 1 Oct from data.gov.sg…</h2>
     <div class="bar"><span id="loadBar"></span></div>
     <button class="btn" id="retry" type="button" hidden>Try again</button>
   </div>
@@ -183,8 +183,8 @@ footer a{color:var(--accent)}
 
   <section class="panel">
     <div class="sec-head">
-      <span class="eyebrow">Daily trend · last 32 days</span>
-      <h2>Haze built up in October</h2>
+      <span class="eyebrow">Daily trend · since 1 Oct</span>
+      <h2>How each day compared</h2>
       <p class="sub">The line is the island-wide daily average. The shaded band shows the spread between the cleanest and haziest region that day. Dots mark the single worst hour.</p>
     </div>
     <div class="legend">
@@ -214,7 +214,7 @@ footer a{color:var(--accent)}
       </div>
       <div class="legend">
         <span><span class="swl" style="border-color:var(--peak)"></span>Last 7 days</span>
-        <span><span class="swl" style="border-color:var(--faint);border-top-style:dashed"></span>Earlier in the month</span>
+        <span><span class="swl" style="border-color:var(--faint);border-top-style:dashed"></span>Earlier days</span>
       </div>
       <div class="chart" id="diurnal"></div>
     </div>
@@ -280,7 +280,7 @@ const days = [...dayMap].map(([d,hs]) => {
 const last = hours[hours.length-1];
 
 /* ---------- header + facts ---------- */
-$("stamp").innerHTML = `Data up to<br><b>${fmtTs(last.t)}</b><br>${fmtDay(days[0].d)} – ${fmtDay(days[days.length-1].d)} 2026`;
+$("stamp").innerHTML = `Data up to<br><b>${fmtTs(last.t)}</b><br>${fmtDay(days[0].d)} – ${fmtDay(days[days.length-1].d)} ${days[0].d.slice(0,4)}`;
 
 const prev24 = hours[hours.length-25];
 const delta = last.avg - prev24.avg;
@@ -293,25 +293,25 @@ const worstDay = days.reduce((a,b)=>b.avg>a.avg?b:a);
 
 const facts = [
   {e:"Island average now", v:`${Math.round(last.avg)}`, d:`${delta>=0?"Up":"Down"} ${Math.abs(Math.round(delta))} from the same hour yesterday`},
-  {e:"Highest hour this month", v:`${mp.v}`, d:`${REG[mp.i].name} · ${fmtTs(mp.t)}`},
+  {e:"Highest hour since 1 Oct", v:`${mp.v}`, d:`${REG[mp.i].name} · ${fmtTs(mp.t)}`},
   {e:"Hours above Normal", v:`${Math.round(hrsElev/hours.length*100)}%`, d:`${hrsElev} of ${hours.length} hours, in at least one region`},
   {e:"Haziest region overall", v:REG[worstReg].name, d:`Month average ${Math.round(regMonth[worstReg])} µg/m³`}
 ];
 $("facts").innerHTML = facts.map(f=>`<div class="fact"><span class="eyebrow">${f.e}</span><span class="v">${f.v}</span><span class="d">${f.d}</span></div>`).join("");
 
 const last7 = days.slice(-7), earlier = days.slice(0,-7);
-const m7 = mean(last7.map(d=>d.avg)), mE = mean(earlier.map(d=>d.avg));
+const m7 = mean(last7.map(d=>d.avg)), mE = earlier.length ? mean(earlier.map(d=>d.avg)) : 0;
 const hrMean = (arr) => Array.from({length:24},(_,h)=>{ const xs=arr.filter(x=>x.h===h).map(x=>x.avg); return xs.length?mean(xs):null; });
 const cut = last7[0].d;
-const diR = hrMean(hours.filter(h=>h.d>=cut)), diE = hrMean(hours.filter(h=>h.d<cut));
+const diR = hrMean(hours.filter(h=>h.d>=cut)), diE = hrMean(hours.filter(h=>h.d<cut)).map((v,i)=>v==null?diR[i]:v);
 const peakHr = diR.indexOf(Math.max(...diR)), lowHr = diR.indexOf(Math.min(...diR));
 const ratio = m7/mE;
 $("insights").innerHTML = [
-  `The last 7 days averaged <b>${Math.round(m7)}</b> µg/m³. That is about <b>${ratio.toFixed(1)}×</b> the earlier part of the month (${Math.round(mE)}).`,
+  earlier.length ? `The last 7 days averaged <b>${Math.round(m7)}</b> µg/m³. That is about <b>${ratio.toFixed(1)}×</b> the days before (${Math.round(mE)}).` : `The last ${last7.length} days averaged <b>${Math.round(m7)}</b> µg/m³.`,
   `The cleanest day was <b>${fmtDay(cleanest.d)}</b> (avg ${Math.round(cleanest.avg)}). The haziest was <b>${fmtDay(worstDay.d)}</b> (avg ${Math.round(worstDay.avg)}).`,
   `This week, air was worst around <b>${fmtHour(peakHr)}</b> and cleanest around <b>${fmtHour(lowHr)}</b>. ${REG[worstReg].name} has been hit hardest.`
 ].map(t=>`<p class="insight">${t}</p>`).join("");
-$("lede").textContent = `PM2.5 has risen sharply since early October. The last week averaged ${Math.round(m7)} µg/m³ island-wide, inside the Elevated band.`;
+$("lede").textContent = `PM2.5 readings since 1 October. The last week averaged ${Math.round(m7)} µg/m³ island-wide, in the ${band(m7).label} range.`;
 $("foot").textContent = `${hours.length} hourly readings from ${fmtDay(days[0].d)} to ${fmtTs(last.t)}.`;
 
 /* ---------- map ---------- */
@@ -516,7 +516,7 @@ window.__latest=last.t;
 
 /* ---------- live loading ---------- */
 const API = "https://api-open.data.gov.sg/v2/real-time/api/pm25";
-const NDAYS = 32, REFRESH_MIN = 15;
+const START = "2026-10-01", REFRESH_MIN = 15;
 const ORDER = ["north","south","east","west","central"];
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const sgToday = () => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore"}).format(new Date());
@@ -544,7 +544,7 @@ async function getDay(d){
 }
 async function fetchAll(onProgress){
   const today = sgToday();
-  const dates = Array.from({length:NDAYS},(_,i)=>addDays(today,i-NDAYS+1));
+  const dates = []; for(let d=START; d<=today; d=addDays(d,1)) dates.push(d);
   const out = {}; let done=0;
   const todo = [];
   dates.forEach(d=>{ const c = d<today ? store.get("pm25:"+d) : null; if(c && c.length>=24){ out[d]=c; done++; } else todo.push(d); });
@@ -562,7 +562,7 @@ const clock = () => new Intl.DateTimeFormat("en-SG",{timeZone:"Asia/Singapore",h
 let first = true;
 async function load(){
   try{
-    const data = await fetchAll((d,n)=>{ if(first){ $("loadBar").style.width=(d/n*100)+"%"; $("loadMsg").textContent=`Loading the last ${n} days from data.gov.sg… ${d}/${n}`; } });
+    const data = await fetchAll((d,n)=>{ if(first){ $("loadBar").style.width=(d/n*100)+"%"; $("loadMsg").textContent=`Loading readings since 1 Oct from data.gov.sg… ${d}/${n} days`; } });
     if(!data.t.length) throw new Error("No readings came back.");
     const changed = data.t[data.t.length-1] !== window.__latest;
     if(first || (changed && !window.__timer)) boot(data);
