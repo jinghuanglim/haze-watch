@@ -14,6 +14,7 @@ import urllib.parse
 import urllib.request
 
 API = "https://api-open.data.gov.sg/v2/real-time/api/pm25"
+PSI_API = "https://api-open.data.gov.sg/v2/real-time/api/psi"
 WIND_API = "https://api-open.data.gov.sg/v2/real-time/api/wind-{kind}"
 WIND_LIMIT = int(os.environ.get("WIND_LIMIT", "150"))   # max hours of wind to backfill per run
 START = dt.date(2026, 10, 1)
@@ -39,6 +40,42 @@ def get_json(url):
         except urllib.error.URLError:
             time.sleep(3 * (attempt + 1))
     raise RuntimeError(f"Gave up on {url}")
+
+
+def fetch_psi_day(day):
+    """24-hour PSI for each region, for every hour of one day."""
+    rows, token = {}, None
+    while True:
+        q = {"date": day.isoformat()}
+        if token:
+            q["paginationToken"] = token
+        j = get_json(f"{PSI_API}?{urllib.parse.urlencode(q)}")
+        if j.get("code") != 0:
+            raise RuntimeError(j.get("errorMsg") or "API error")
+        for it in j["data"].get("items", []):
+            p = it["readings"].get("psi_twenty_four_hourly", {})
+            vals = [p.get(r) for r in REGIONS]
+            if all(isinstance(v, (int, float)) for v in vals):
+                rows[it["timestamp"]] = vals
+        token = j["data"].get("paginationToken")
+        if not token:
+            return rows
+
+
+def update_psi(old, today):
+    p = old.get("psi") or {"t": [], "v": []}
+    rows = dict(zip(p["t"], p["v"]))
+    have = {}
+    for t in rows:
+        have[t[:10]] = have.get(t[:10], 0) + 1
+    day = START
+    while day <= today:
+        if day >= today - dt.timedelta(days=1) or have.get(day.isoformat(), 0) < 24:
+            rows.update(fetch_psi_day(day))
+            time.sleep(0.2)
+        day += dt.timedelta(days=1)
+    ts = sorted(t for t in rows if t[:10] >= START.isoformat())
+    return {"t": ts, "v": [rows[t] for t in ts]}
 
 
 def fetch_day(day):
@@ -113,6 +150,12 @@ def main():
 
     ts = sorted(t for t in rows if t[:10] >= START.isoformat())
     data = {"regions": REGIONS, "t": ts, "v": [rows[t] for t in ts]}
+    try:
+        data["psi"] = update_psi(old, today)
+    except Exception as e:                        # PSI is extra; never block PM2.5 updates
+        print("PSI update skipped:", e)
+        if old.get("psi"):
+            data["psi"] = old["psi"]
     try:
         data["wind"] = update_wind(old, ts)
     except Exception as e:                        # wind is a bonus; never block PM2.5 updates

@@ -31,12 +31,14 @@
   --b1-soft:#d5ecdc; --b2-soft:#f5e6b3; --b3-soft:#f6cdbb; --b4-soft:#e8c0cb;
   --cell-ink:#141819; --cell-ink-4:#ffffff;
   --tint:var(--b1); --tint-soft:var(--b1-soft);
+  --p1:#2a8f6a; --p2:#7aa83a; --p3:#c98f00; --p4:#d54b25; --p5:#8e1b3a;
   --sky1:#8fc6ea; --sky2:#e3f1f8; --city-back:#9fb3bf; --city-front:#5f717c; --win:#e9f2f6; --haze:#c9b98a;
   --f-display:"Young Serif",Georgia,"Times New Roman",serif;
   --f-body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --map-filter:grayscale(1) brightness(.75) contrast(.9);
+  --p1:#3fb388; --p2:#9cc85a; --p3:#e6ae22; --p4:#f06d45; --p5:#d0466c;
   --bg:#121516; --surface:#1a1e20; --line:#2c3235; --ink:#ecebe6; --muted:#a3a7a9; --faint:#73787b;
   --btn:#ecebe6; --btn-ink:#121516;
   --b1:#46b673; --b2:#e6ae22; --b3:#f06d45; --b4:#d0466c;
@@ -45,6 +47,7 @@
   --city-back:#2a3438; --city-front:#151b1e; --win:#e8c675; color-scheme:dark}}
 :root[data-theme="dark"]{
   --map-filter:grayscale(1) brightness(.75) contrast(.9);
+  --p1:#3fb388; --p2:#9cc85a; --p3:#e6ae22; --p4:#f06d45; --p5:#d0466c;
   --bg:#121516; --surface:#1a1e20; --line:#2c3235; --ink:#ecebe6; --muted:#a3a7a9; --faint:#73787b;
   --btn:#ecebe6; --btn-ink:#121516;
   --b1:#46b673; --b2:#e6ae22; --b3:#f06d45; --b4:#d0466c;
@@ -216,6 +219,14 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .fact .v{font:400 1.75rem/1.1 var(--f-display);font-variant-numeric:tabular-nums}
 .fact .d{font-size:.82rem;color:var(--muted)}
 
+/* PSI line */
+.psi{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;font-size:.92rem;color:var(--muted);border-top:1px solid color-mix(in srgb,var(--ink) 12%,transparent);padding-top:12px}
+.psi b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.psi .pchip{display:inline-flex;align-items:center;gap:6px;font-size:.84rem;font-weight:600;color:var(--ink)}
+.psi .pchip i{width:9px;height:9px;border-radius:2px;transform:rotate(45deg)}
+.psi .info{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 .72rem/1 var(--f-body);cursor:pointer;padding:0}
+.psi .info[aria-expanded="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.psinote{flex-basis:100%;font-size:.8rem;color:var(--muted);line-height:1.45}
 /* wind */
 .windbox{display:flex;align-items:center;gap:9px;background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:10px;padding:8px 12px 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,.18);color:var(--ink)}
 .windbox svg{width:38px;height:38px;flex:none}
@@ -327,6 +338,7 @@ footer a{color:var(--ink)}
         <div class="big"><span class="n" id="nowNum">–</span><span class="unit">µg/m³ in <span id="nowRegion"></span></span></div>
         <div><span class="pill" id="nowPill"><i></i><span></span></span></div>
         <div class="gauge" id="gauge" role="group" aria-label="PM2.5 bands. Choose a band to see its advice."></div>
+        <div class="psi" id="psiLine" hidden></div>
         <ul class="regions" id="regionList"></ul>
         <p class="advice" id="advice"></p>
       </div>
@@ -419,10 +431,19 @@ const fmtWeekday = d => WD[new Date(d+"T12:00:00+08:00").getUTCDay()];
 /* ---------- band scale (gauge) with advice ---------- */
 const GMAX = 300;
 const GSEG = [[0,55,"--b1","Normal"],[55,150,"--b2","Elevated"],[150,250,"--b3","High"],[250,GMAX,"--b4","V. high"]];
-let CUR_BAND = 0;
+let CUR_BAND = 0, ADVICE_OVERRIDE = null;
+const PSI_BANDS = [
+  {label:"Good", max:50, c:"--p1", lvl:0, advice:"Normal activities."},
+  {label:"Moderate", max:100, c:"--p2", lvl:0, advice:"Normal activities."},
+  {label:"Unhealthy", max:200, c:"--p3", lvl:2, advice:"Reduce long or hard outdoor exertion today."},
+  {label:"Very unhealthy", max:300, c:"--p4", lvl:3, advice:"Avoid long or hard outdoor exertion today."},
+  {label:"Hazardous", max:Infinity, c:"--p5", lvl:3, advice:"Keep outdoor activity to a minimum today."}
+];
+const psiBand = v => PSI_BANDS.find(b => v <= b.max);
+let PSI_OPEN = false;
 function showAdvice(i, preview){
   const b = BANDS[i];
-  $("advice").innerHTML = `<b>${b.label} (${RANGES[i]}):</b> ${b.advice}`;
+  $("advice").innerHTML = (!preview && ADVICE_OVERRIDE) ? ADVICE_OVERRIDE : `<b>${b.label} (${RANGES[i]}):</b> ${b.advice}`;
   document.querySelectorAll(".gauge .gb").forEach((x,k)=>x.classList.toggle("on", preview && k===i));
 }
 function buildGauge(){
@@ -581,8 +602,9 @@ function say(m){
     else TYPE_T = setTimeout(()=>el.classList.remove("typing"), 900);
   })();
 }
-function setMood(avg){
-  const m = bandIx(avg), b = BANDS[m], box = $("mood");
+function setMood(avg, psi){
+  const pmL = bandIx(avg), pb = psi!=null ? psiBand(psi) : null;
+  const m = Math.max(pmL, pb ? pb.lvl : 0), b = BANDS[m], box = $("mood");
   setSky(m);
   box.style.setProperty("--mbg", `var(${b.soft})`);
   box.style.setProperty("--mc", `var(${b.c})`);
@@ -593,7 +615,7 @@ function setMood(avg){
     LAST_MOOD = m; LAST_LINE = -1;
     say(m);
   }
-  $("moodNote").textContent = `Island average ${Math.round(avg)} µg/m³ · ${b.label}`;
+  $("moodNote").textContent = `Island PM2.5 ${Math.round(avg)} (${BANDS[pmL].label})` + (pb ? ` · 24-hr PSI ${Math.round(psi)} (${pb.label})` : "");
 }
 const PUFFS = [["💖","✨","💖"],["💦","💧","💦"],["💨","😷","💨"],["💨","🌫️","💨"]];
 $("ava").addEventListener("click", ()=>{
@@ -699,6 +721,8 @@ const days = [...dayMap].map(([d,hs]) => {
   return {d, avg:mean(hs.map(h=>h.avg)), reg, lo:Math.min(...reg), hi:Math.max(...reg), peak:pv, peakReg:pr, peakT:pt};
 });
 const last = hours[hours.length-1];
+const PSI = new Map(); if(DATA.psi) DATA.psi.t.forEach((t,i)=>PSI.set(t, REG.map(r=>DATA.psi.v[i][DATA.regions.indexOf(r.k)])));
+function psiFor(i){ for(let k=0;k<=3 && i-k>=0;k++){ const p=PSI.get(hours[i-k].t); if(p) return p; } return null; }
 const WIND = new Map(); if(DATA.wind) DATA.wind.t.forEach((t,i)=>WIND.set(t,[DATA.wind.d[i], DATA.wind.s[i]]));
 function windFor(i){                       // this hour, or the closest earlier hour within 3h
   for(let k=0;k<=3 && i-k>=0;k++){ const w=WIND.get(hours[i-k].t); if(w) return [w[0],w[1],k>0]; }
@@ -759,8 +783,21 @@ function renderNow(i){
   const scale = Math.max(160, ...hr.vals);
   $("regionList").innerHTML = REG.map((r,k)=>({r,v:hr.vals[k]})).sort((a,b)=>b.v-a.v).map(({r,v})=>
     `<li><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
-  CUR_BAND = BANDS.indexOf(b); showAdvice(CUR_BAND,false);
-  setMood(hr.avg);
+  CUR_BAND = BANDS.indexOf(b);
+  // 24-hr PSI: island range + worst region; the advice follows whichever scale is stricter
+  const ps = psiFor(i), line = $("psiLine");
+  ADVICE_OVERRIDE = null;
+  if(ps){
+    const lo=Math.min(...ps), hi=Math.max(...ps), wr=ps.indexOf(hi), pb=psiBand(hi);
+    line.hidden=false;
+    line.innerHTML = `<span>24-hr PSI:</span><b>${lo===hi?hi:`${lo}–${hi}`}</b><span class="pchip"><i style="background:var(${pb.c})"></i>${pb.label} (${REG[wr].name})</span>
+      <button class="info" id="psiInfo" type="button" aria-expanded="${PSI_OPEN}" aria-controls="psiNote" aria-label="What is the 24-hour PSI?">i</button>
+      <span class="psinote" id="psiNote"${PSI_OPEN?"":" hidden"}>NEA bases its daily health advice on the 24-hour PSI. The PM2.5 reading above shows the last hour, so use it to plan the next few hours.</span>`;
+    $("psiInfo").onclick = ()=>{ PSI_OPEN=!PSI_OPEN; $("psiNote").hidden=!PSI_OPEN; $("psiInfo").setAttribute("aria-expanded",PSI_OPEN); };
+    if(pb.lvl > bandIx(hr.max)) ADVICE_OVERRIDE = `<b>PSI is ${pb.label} (${REG[wr].name}):</b> ${pb.advice}`;
+  } else line.hidden = true;
+  showAdvice(CUR_BAND,false);
+  setMood(hr.avg, ps ? mean(ps) : null);
   updateMap(hr);
   setWind(windFor(i));
 }
@@ -962,6 +999,10 @@ async function fetchLiveDay(d){
   }while(tok);
   return rows;
 }
+async function fetchLivePsi(d){
+  const r = await fetch("https://api-open.data.gov.sg/v2/real-time/api/psi?date="+d,{cache:"no-store"}); const j = await r.json();
+  return (j.data?.items||[]).map(it=>{ const p=it.readings.psi_twenty_four_hourly||{}; return [it.timestamp, ORDER.map(k=>p[k])]; }).filter(x=>x[1].every(v=>typeof v==="number"));
+}
 async function liveWindAt(ts){
   const q="?date="+encodeURIComponent(ts.slice(0,19));
   const [a,b] = await Promise.all(["direction","speed"].map(k=>fetch(`https://api-open.data.gov.sg/v2/real-time/api/wind-${k}${q}`,{cache:"no-store"}).then(r=>r.json())));
@@ -974,7 +1015,7 @@ async function liveWindAt(ts){
 function mergeRows(data, rows){
   const m = new Map(data.t.map((t,i)=>[t,data.v[i]]));
   rows.forEach(([t,v])=>{ if(t.slice(0,10)>=START) m.set(t,v); });
-  const t=[...m.keys()].sort(); return {regions:data.regions||ORDER, t, v:t.map(k=>m.get(k)), wind:data.wind};
+  const t=[...m.keys()].sort(); return {regions:data.regions||ORDER, t, v:t.map(k=>m.get(k)), wind:data.wind, psi:data.psi};
 }
 const clock = d => new Intl.DateTimeFormat("en-SG",{timeZone:"Asia/Singapore",hour:"numeric",minute:"2-digit"}).format(d);
 function setLive(ok,msg){ const l=$("live"); l.classList.toggle("stale",!ok); l.querySelector("span").textContent=msg; }
@@ -996,6 +1037,8 @@ async function load(manual){
         const need = data.t.filter(t=>!have.has(t)).slice(-4);           // newest few hours only
         for(const t of need){ const r = await liveWindAt(t).catch(()=>null); if(r){ w.t.push(t); w.d.push(r[0]); w.s.push(r[1]); } }
         data.wind = w;
+        try{ const pr = await fetchLivePsi(today), p = data.psi || {t:[],v:[]}, pm = new Map(p.t.map((t,i)=>[t,p.v[i]]));
+          pr.forEach(([t,v])=>pm.set(t,v)); const pt=[...pm.keys()].sort(); data.psi = {t:pt, v:pt.map(k=>pm.get(k))}; }catch(e){}
       }catch(e){ /* keep data.json as is */ }
       if(manual && window.__timer){ clearInterval(window.__timer); window.__timer=null; }
     }
