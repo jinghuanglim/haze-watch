@@ -234,14 +234,6 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .psi .info{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 .72rem/1 var(--f-body);cursor:pointer;padding:0}
 .psi .info[aria-expanded="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .psinote{flex-basis:100%;font-size:.8rem;color:var(--muted);line-height:1.45}
-/* diary card */
-.diary{margin-top:22px;max-width:560px;background:var(--paper);border-radius:4px;padding:16px 20px 18px 22px;transform:rotate(-.6deg);
-  box-shadow:0 1px 0 rgba(0,0,0,.04),0 8px 22px rgba(0,0,0,.12);position:relative;
-  background-image:repeating-linear-gradient(to bottom,transparent 0 29px,var(--rule) 29px 30px);background-position:0 12px}
-.diary::before{content:"";position:absolute;left:22px;top:-8px;width:54px;height:16px;background:color-mix(in srgb,var(--tint) 45%,transparent);transform:rotate(-8deg);border-radius:2px}
-.diary h3{margin:0 0 4px;font:700 1.2rem/30px var(--f-hand);color:var(--pen)}
-.diary p{font:400 1.12rem/30px var(--f-hand);color:var(--pen)}
-.diary-hint{font-size:.8rem;color:var(--faint);margin-top:12px}
 /* footer sign-off */
 .sign{font:700 1.5rem/1.2 var(--f-hand);color:var(--pen);transform:rotate(-1.2deg);transform-origin:left;margin-bottom:4px}
 .why{font-size:.92rem;color:var(--ink);max-width:62ch}
@@ -381,8 +373,6 @@ footer a{color:var(--ink)}
       <span><span class="dot" style="background:var(--muted)"></span>Worst hour</span>
     </div>
     <div class="chart" id="daily"></div>
-    <div class="diary" id="diary" aria-live="polite"></div>
-    <p class="diary-hint">Tap a day on the chart to read JH's entry for it.</p>
   </section>
 
   <hr class="rule">
@@ -418,7 +408,7 @@ footer a{color:var(--ink)}
   </section>
 
   <footer>
-    <p class="sign">Made by JH, mostly at 1am 🌫️</p>
+    <p class="sign">Made by JH, mostly at 12am 🌫️</p>
     <p class="why">Why I made this: I wanted to know if I could go for a run without checking three different apps. Now I check one page, and it judges me.</p>
     <ul class="disclaim">
       <li>Not medical advice. I'm a haze enthusiast, not a doctor.</li>
@@ -813,23 +803,6 @@ $("hmHead").textContent = `${REG[worstReg].name} has been coughing the most`;
 $("diHead").textContent = `Worst around ${fmtHour(peakHr)}, best around ${fmtHour(lowHr)}. Plan kopi runs accordingly.`;
 $("foot").textContent = `${hours.length} hourly readings since ${fmtDay(days[0].d)}.`;
 
-/* ---------- diary entries ---------- */
-const DIARY = [
-  ["Blue sky day. Lungs very happy.","Clean air! Went out like a normal human.","Proper fresh air. Rare, so I savoured it."],
-  ["Meh air. Kept the run short.","Hazy-ish all day. Windows half shut.","Not bad, not great. Very Singapore."],
-  ["Thick haze. Mask on, run cancelled.","Smelled like someone's BBQ all day.","Air purifier working overtime. MVP."],
-  ["Stayed home. The air was not it.","Haze so thick I could chew it.","Did not leave the house. No regrets."]
-];
-const psiDayMax = d => { let m=null; hours.forEach(h=>{ if(h.d===d){ const p=PSI.get(h.t); if(p){ const v=Math.max(...p); if(m===null||v>m) m=v; } } }); return m; };
-function setDiary(i){
-  const d = days[i], prev = days[i-1], n = hours.filter(h=>h.d===d.d).length;
-  const bi = bandIx(d.avg), seed = [...d.d].reduce((s,c)=>s+c.charCodeAt(0),0);
-  const parts = [DIARY[bi][seed % DIARY[bi].length], `Worst hour: ${d.peak} in ${REG[d.peakReg].name} at ${fmtHour(+d.peakT.slice(11,13))}.`];
-  if(prev && n>=24){ const ch=(d.avg-prev.avg)/prev.avg; if(ch>.2) parts.push("Worse than yesterday, sian."); else if(ch<-.2) parts.push("Better than yesterday. Small wins."); }
-  const pm = psiDayMax(d.d); if(pm>300) parts.push("PSI went hazardous. Stay in!"); else if(pm>200) parts.push(`PSI hit ${pm}. Not a running day.`); else if(pm>100) parts.push("PSI was in the Unhealthy range.");
-  $("diary").innerHTML = `<h3>${fmtWeekday(d.d)} ${fmtDay(d.d)}${n<24?" (so far)":""}</h3><p>${parts.join(" ")}</p>`;
-}
-
 /* ---------- now panel + map ---------- */
 const today = sgDate(), yday = (()=>{ const t=new Date(today+"T00:00:00Z"); t.setUTCDate(t.getUTCDate()-1); return t.toISOString().slice(0,10); })();
 const dayName = d => `${d===today?"Today":d===yday?"Yesterday":fmtWeekday(d)}, ${fmtDay(d)}`;
@@ -965,8 +938,6 @@ function drawDaily(){
     tip.innerHTML=`<b>${fmtDay(d.d)}</b><br>Island average ${Math.round(d.avg)}<br>Regions ${Math.round(d.lo)}–${Math.round(d.hi)}<br>Worst hour ${d.peak} · ${REG[d.peakReg].name}, ${fmtHour(+d.peakT.slice(11,13))}`;
   };
   hit.addEventListener("pointermove",move); hit.addEventListener("pointerdown",move);
-  hit.addEventListener("click", e=>{ const r=svg.getBoundingClientRect(), sx=(e.clientX-r.left)/r.width*W;
-    setDiary(Math.max(0,Math.min(days.length-1,Math.round((sx-L)/((W-L-R)/Math.max(1,days.length-1)))))); });
   hit.addEventListener("pointerleave",()=>{ tip.hidden=true; cross.setAttribute("opacity",0); });
 }
 
@@ -1054,9 +1025,7 @@ function drawDiurnal(){
 }
 
 /* ---------- draw ---------- */
-let DIARY_I = window.__diaryI ?? days.length-1; if(DIARY_I>days.length-1) DIARY_I=days.length-1;
-const _setDiary = setDiary; setDiary = i => { DIARY_I = window.__diaryI = i; _setDiary(i); };
-function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); setDiary(DIARY_I); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
+function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
 drawAll();
 window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); fitHeat(); }; window.__font=()=>renderNow(cur);
 window.__latest=last.t;
