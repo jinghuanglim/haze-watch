@@ -7,6 +7,8 @@
 <title>Singapore Haze Watch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 /* Layout: a monitoring console. Status strip + map first, then the month's trend, the region-by-day grid, and the time-of-day pattern. */
@@ -69,7 +71,19 @@ header .titles{display:flex;flex-direction:column;gap:10px;min-width:0}
 .status{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px}
 @media (max-width:820px){.status{grid-template-columns:minmax(0,1fr)}}
 .mapbox{position:relative}
-.mapbox canvas{width:100%;height:auto;display:block;aspect-ratio:640/380;max-width:100%}
+.leaf{width:100%;height:440px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--bg);z-index:0}
+@media (max-width:600px){.leaf{height:340px}}
+.leaflet-container{font-family:var(--f-body)}
+.leaflet-control-attribution{font-size:10px!important}
+.leaflet-control-zoom a{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.mk{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 9px 6px;border-radius:8px;background:var(--surface);
+  border:2px solid var(--c);box-shadow:0 2px 10px rgba(0,0,0,.18);transform:translate(-50%,-50%);white-space:nowrap;width:max-content}
+.mk span{font:600 9.5px/1 var(--f-data);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.mk b{font:600 17px/1 var(--f-data);color:var(--ink);font-variant-numeric:tabular-nums}
+.maphint{font-size:.78rem;color:var(--faint);margin-top:8px}
+.when{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.when .today{font:600 .78rem/1 var(--f-data);text-transform:uppercase;letter-spacing:.08em;padding:4px 8px;border-radius:4px;background:var(--accent);color:var(--accent-ink)}
+.when .today.past{background:var(--line);color:var(--muted)}
 .scrub{display:flex;align-items:center;gap:12px;margin-top:12px}
 .scrub input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
 .btn{font:600 .8rem/1 var(--f-data);border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
@@ -154,20 +168,21 @@ footer a{color:var(--accent)}
   <section class="status">
     <div class="panel mapbox">
       <div class="sec-head">
-        <span class="eyebrow">Map</span>
+        <div class="when"><span class="today" id="todayTag">Latest</span><span class="eyebrow" id="mapDate"></span></div>
         <h2 id="mapTitle">Readings by region</h2>
       </div>
-      <canvas id="map" width="640" height="380" role="img" aria-label="Map of Singapore coloured by PM2.5 band in each region"></canvas>
+      <div id="map" class="leaf" role="region" aria-label="Map of Singapore showing PM2.5 by region"></div>
+      <p class="maphint">Pinch or use + / − to zoom. Click the map first to zoom with your mouse wheel.</p>
       <div class="scrub">
-        <button class="btn" id="play" type="button">▶ Play month</button>
+        <button class="btn" id="play" type="button" aria-label="Play">▶ Play</button>
         <input type="range" id="slider" min="0" max="0" value="0" aria-label="Choose an hour">
-        <span class="scrub-time" id="scrubTime"></span>
+        <button class="btn ghost" id="toLatest" type="button" hidden>Latest</button>
       </div>
     </div>
     <div class="panel now">
       <div class="sec-head" style="margin:0">
         <span class="eyebrow" id="nowLabel">Latest hour</span>
-        <h2>Worst region right now</h2>
+        <h2 id="nowHead">Worst region right now</h2>
       </div>
       <div class="big"><span class="num" id="nowNum">–</span><span class="unit">µg/m³ · <span id="nowRegion"></span></span></div>
       <div><span class="pill" id="nowPill"><i></i><span></span></span></div>
@@ -259,6 +274,47 @@ const fmtHour = h => { const hh=h%12||12; return `${hh}${h<12?"am":"pm"}`; };
 const fmtTs = t => `${fmtDay(t.slice(0,10))}, ${fmtHour(+t.slice(11,13))}`;
 
 
+
+/* ---------- date helpers ---------- */
+const sgDate = () => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore"}).format(new Date());
+const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const fmtWeekday = d => WD[new Date(d+"T12:00:00+08:00").getUTCDay()];
+const fmtFull = t => `${fmtDay(t.slice(0,10))} ${t.slice(0,4)}, ${fmtHour(+t.slice(11,13))}`;
+
+/* ---------- map (Leaflet + OneMap) ---------- */
+const HOME=[[1.24,103.64],[1.46,104.0]];
+let LMAP=null, TILE=null, TILE_STYLE="", CIRCLES=[], MARKERS=[];
+const isDark = () => matchMedia("(prefers-color-scheme: dark)").matches ? document.documentElement.dataset.theme!=="light" : document.documentElement.dataset.theme==="dark";
+const OM_ATTR = '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> &copy; contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">Singapore Land Authority</a>';
+function initMap(){
+  if(LMAP || !window.L) return;
+  const bounds = L.latLngBounds([1.144,103.596],[1.494,104.1]);
+  LMAP = L.map("map",{zoomControl:true, scrollWheelZoom:false, maxBounds:bounds, maxBoundsViscosity:1, minZoom:10, maxZoom:16, zoomSnap:0.25, zoomDelta:0.5, attributionControl:true});
+  LMAP.fitBounds(HOME);
+  LMAP.on("click focus",()=>LMAP.scrollWheelZoom.enable());
+  LMAP.on("mouseout blur",()=>LMAP.scrollWheelZoom.disable());
+  REG.forEach(r=>{
+    CIRCLES.push(L.circle([r.lat,r.lon],{radius:3300, weight:1.5, fillOpacity:.28, interactive:false}).addTo(LMAP));
+    MARKERS.push(L.marker([r.lat,r.lon],{icon:L.divIcon({className:"",html:"",iconSize:null}), keyboard:false}).addTo(LMAP));
+  });
+}
+function setTiles(){
+  const style = isDark() ? "Night" : "Grey";
+  if(style===TILE_STYLE) return;
+  if(TILE) LMAP.removeLayer(TILE);
+  TILE = L.tileLayer(`https://www.onemap.gov.sg/maps/tiles/${style}/{z}/{x}/{y}.png`,{detectRetina:true, maxZoom:19, minZoom:10, minNativeZoom:11, attribution:OM_ATTR}).addTo(LMAP);
+  TILE_STYLE = style;
+}
+function updateMap(hr){
+  initMap(); if(!LMAP) return; setTiles();
+  REG.forEach((r,i)=>{
+    const v=hr.vals[i], b=band(v), col=css(b.c);
+    CIRCLES[i].setStyle({color:col, fillColor:col});
+    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})"><span>${r.name}</span><b>${v}</b></div>`}));
+    MARKERS[i].bindTooltip(`${r.name}: ${v} µg/m³ · ${b.label}`,{direction:"top",offset:[0,-24]});
+  });
+}
+
 function boot(DATA){
 /* ---------- shape the data ---------- */
 const order = DATA.regions; // order of values in each row
@@ -313,66 +369,17 @@ $("insights").innerHTML = [
 $("lede").textContent = `PM2.5 readings since 1 October. The last week averaged ${Math.round(m7)} µg/m³ island-wide, in the ${band(m7).label} range.`;
 $("foot").textContent = `${hours.length} hourly readings from ${fmtDay(days[0].d)} to ${fmtTs(last.t)}.`;
 
-/* ---------- map ---------- */
-const MW=640, MH=380, LON0=103.59, LON1=104.06, LAT0=1.20, LAT1=1.48;
-const px = lon => (lon-LON0)/(LON1-LON0)*MW, py = lat => (LAT1-lat)/(LAT1-LAT0)*MH;
-const OUTLINE = [[103.605,1.322],[103.625,1.345],[103.645,1.362],[103.665,1.385],[103.69,1.41],[103.705,1.43],[103.725,1.445],[103.75,1.452],[103.772,1.446],[103.79,1.455],[103.81,1.465],[103.832,1.468],[103.85,1.46],[103.87,1.452],[103.888,1.44],[103.905,1.428],[103.925,1.415],[103.945,1.402],[103.968,1.395],[103.99,1.388],[104.012,1.38],[104.03,1.37],[104.042,1.352],[104.03,1.333],[104.005,1.322],[103.98,1.313],[103.955,1.306],[103.93,1.302],[103.905,1.298],[103.885,1.293],[103.868,1.282],[103.855,1.27],[103.84,1.264],[103.82,1.266],[103.8,1.272],[103.782,1.28],[103.765,1.289],[103.748,1.298],[103.73,1.306],[103.712,1.302],[103.695,1.29],[103.675,1.28],[103.655,1.282],[103.635,1.292],[103.615,1.305]];
-const cv = $("map"), ctx = cv.getContext("2d");
-let zone = null, dpr = 1;
-function buildZones(){
-  dpr = Math.min(2, window.devicePixelRatio||1);
-  cv.width = MW*dpr; cv.height = MH*dpr;
-  const W=cv.width, H=cv.height;
-  const off = document.createElement("canvas"); off.width=W; off.height=H;
-  const o = off.getContext("2d"); o.scale(dpr,dpr);
-  o.beginPath(); OUTLINE.forEach(([lo,la],i)=> i?o.lineTo(px(lo),py(la)):o.moveTo(px(lo),py(la))); o.closePath(); o.fill();
-  const a = o.getImageData(0,0,W,H).data;
-  const pts = REG.map(r=>[px(r.lon)*dpr, py(r.lat)*dpr]);
-  zone = new Int8Array(W*H).fill(-1);
-  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-    const p=y*W+x; if(a[p*4+3]<128) continue;
-    let best=0, bd=1e18;
-    for(let i=0;i<5;i++){ const dx=x-pts[i][0], dy=(y-pts[i][1])*1.15; const dd=dx*dx+dy*dy; if(dd<bd){bd=dd;best=i;} }
-    zone[p]=best;
-  }
-}
-const hex2rgb = h => { h=h.replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h,16); return [n>>16&255,n>>8&255,n&255]; };
-function drawMap(hr){
-  const W=cv.width, H=cv.height;
-  const img = ctx.createImageData(W,H), d = img.data;
-  const cols = hr.vals.map(v=>hex2rgb(css(band(v).c)));
-  const line = hex2rgb(css("--surface"));
-  for(let p=0;p<W*H;p++){
-    const z=zone[p]; if(z<0) continue;
-    const x=p%W;
-    const edge = (x+1<W && zone[p+1]>=0 && zone[p+1]!==z) || (p+W<W*H && zone[p+W]>=0 && zone[p+W]!==z);
-    const c = edge?line:cols[z];
-    d[p*4]=c[0]; d[p*4+1]=c[1]; d[p*4+2]=c[2]; d[p*4+3]= edge?255:225;
-  }
-  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,H); ctx.putImageData(img,0,0);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.beginPath(); OUTLINE.forEach(([lo,la],i)=> i?ctx.lineTo(px(lo),py(la)):ctx.moveTo(px(lo),py(la))); ctx.closePath();
-  ctx.lineWidth=1.5; ctx.strokeStyle=css("--ink"); ctx.globalAlpha=.55; ctx.stroke(); ctx.globalAlpha=1;
-  const off = {north:[0,-14],south:[0,10],central:[0,0],east:[10,0],west:[-6,0]};
-  REG.forEach((r,i)=>{
-    const [ox,oy]=off[r.k]; const x=px(r.lon)+ox, y=py(r.lat)+oy;
-    const w=74, h=42;
-    ctx.fillStyle=css("--surface"); ctx.globalAlpha=.94;
-    ctx.beginPath(); ctx.roundRect(x-w/2,y-h/2,w,h,7); ctx.fill(); ctx.globalAlpha=1;
-    ctx.fillStyle=css("--muted"); ctx.font=`600 10px ${css("--f-data")}`; ctx.textAlign="center";
-    ctx.fillText(r.name.toUpperCase(), x, y-6);
-    ctx.fillStyle=css("--ink"); ctx.font=`600 17px ${css("--f-data")}`;
-    ctx.fillText(hr.vals[i], x, y+13);
-  });
-  ctx.fillStyle=css("--faint"); ctx.font=`500 10px ${css("--f-data")}`; ctx.textAlign="left";
-  ctx.fillText("Regions shown as approximate zones", 8, MH-10);
-}
-
 /* ---------- now panel ---------- */
 function renderNow(i){
   const hr = hours[i];
   const wi = hr.vals.indexOf(hr.max); const b = band(hr.max);
-  $("nowLabel").textContent = i===hours.length-1 ? `Latest hour · ${fmtTs(hr.t)}` : `Selected hour · ${fmtTs(hr.t)}`;
+  const isLatest = i===hours.length-1, isToday = hr.d===sgDate();
+  $("nowLabel").textContent = `${isToday?"Today":fmtWeekday(hr.d)} · ${fmtFull(hr.t)}`;
+  $("nowHead").textContent = isLatest ? "Worst region right now" : "Worst region at this hour";
+  $("todayTag").textContent = isLatest ? "Latest" : (isToday ? "Today" : "Past");
+  $("todayTag").classList.toggle("past", !isLatest);
+  $("mapDate").textContent = `${isToday?"Today":fmtWeekday(hr.d)}, ${fmtFull(hr.t)}`;
+  $("toLatest").hidden = isLatest;
   $("nowNum").textContent = hr.max;
   $("nowRegion").textContent = REG[wi].name;
   const pill = $("nowPill"); pill.style.background=`var(${b.soft})`; pill.querySelector("i").style.background=`var(${b.c})`;
@@ -381,20 +388,20 @@ function renderNow(i){
   $("regionList").innerHTML = REG.map((r,k)=>({r,v:hr.vals[k]})).sort((a,b)=>b.v-a.v).map(({r,v})=>
     `<li><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
   $("advice").textContent = `${b.label}: ${b.advice}`;
-  $("scrubTime").textContent = fmtTs(hr.t);
-  $("mapTitle").textContent = i===hours.length-1 ? "Readings by region, latest hour" : "Readings by region";
-  drawMap(hr);
+  $("mapTitle").textContent = isLatest ? "Latest reading by region" : "Reading by region at this hour";
+  updateMap(hr);
 }
-["slider","play"].forEach(id=>{const o=$(id); o.replaceWith(o.cloneNode(true));});
-$("play").textContent="▶ Play month";
+["slider","play","toLatest"].forEach(id=>{const o=$(id); o.replaceWith(o.cloneNode(true));});
+$("play").textContent="▶ Play";
 const slider = $("slider"); slider.max = hours.length-1; slider.value = hours.length-1;
 let cur = hours.length-1; window.__timer=null;
 slider.addEventListener("input", ()=>{ cur=+slider.value; renderNow(cur); });
+$("toLatest").addEventListener("click", ()=>{ if(window.__timer){ clearInterval(window.__timer); window.__timer=null; $("play").textContent="▶ Play"; } cur=hours.length-1; slider.value=cur; renderNow(cur); });
 $("play").addEventListener("click", ()=>{
-  if(window.__timer){ clearInterval(window.__timer); window.__timer=null; $("play").textContent="▶ Play month"; return; }
+  if(window.__timer){ clearInterval(window.__timer); window.__timer=null; $("play").textContent="▶ Play"; return; }
   if(cur>=hours.length-1) cur=0;
   $("play").textContent="❚❚ Pause";
-  window.__timer=setInterval(()=>{ cur++; slider.value=cur; renderNow(cur); if(cur>=hours.length-1){ clearInterval(window.__timer); window.__timer=null; $("play").textContent="▶ Play month"; } }, 60);
+  window.__timer=setInterval(()=>{ cur++; slider.value=cur; renderNow(cur); if(cur>=hours.length-1){ clearInterval(window.__timer); window.__timer=null; $("play").textContent="▶ Play"; } }, 70);
 });
 
 /* ---------- SVG helpers ---------- */
@@ -507,7 +514,7 @@ $("bandKey").innerHTML = BANDS.map((b,i)=>`<span class="tag mono" style="backgro
 
 /* ---------- boot + theme ---------- */
 function drawAll(){ renderNow(cur); drawDaily(); drawHeat(); drawDiurnal(); }
-buildZones(); drawAll();
+drawAll();
 window.__draw=drawAll; window.__charts=()=>{drawDaily();drawDiurnal();}; window.__font=()=>renderNow(cur);
 window.__latest=last.t;
 
@@ -527,7 +534,9 @@ async function load(){
     if(!data.t || !data.t.length) throw new Error("The data file is empty.");
     const latest = data.t[data.t.length-1];
     if(first || (latest !== window.__latest && !window.__timer)) boot(data);
-    document.body.classList.remove("pending"); first=false;
+    document.body.classList.remove("pending");
+    if(first && LMAP){ LMAP.invalidateSize(); LMAP.fitBounds(HOME); }
+    first=false;
     const ageH = (Date.now() - new Date(latest).getTime())/36e5;
     if(ageH > 3) setLive(false, `Readings are ${Math.floor(ageH)}h old · checked ${clock(new Date())}`);
     else setLive(true, `Updated hourly · checked ${clock(new Date())}`);
