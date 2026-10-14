@@ -97,14 +97,19 @@ header .titles{display:flex;flex-direction:column;gap:10px;min-width:0}
 .maplegend i{width:10px;height:10px;border-radius:50%;flex:none}
 .maplegend em{font-style:normal;color:var(--muted);margin-left:auto;padding-left:10px}
 .gauge{display:flex;flex-direction:column;gap:6px;margin-top:2px}
-.gauge .segs{position:relative;display:flex;gap:2px;height:10px}
-.gauge .segs div{height:100%;border-radius:3px;opacity:.9}
-.gauge .mark{position:absolute;top:-5px;width:4px;height:20px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--surface);transform:translateX(-50%);transition:left .25s}
+.gauge .gbands{position:relative;display:flex;gap:2px}
+.gauge .gb{display:flex;flex-direction:column;gap:7px;padding:0 0 4px;border:0;background:transparent;cursor:pointer;min-width:0;text-align:left;border-radius:4px}
+.gauge .gb .bar{display:block;height:10px;border-radius:3px;opacity:.85;transition:opacity .15s}
+.gauge .gb:hover .bar,.gauge .gb:focus-visible .bar,.gauge .gb.on .bar{opacity:1;box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--ink)}
+.gauge .gb:focus-visible{outline:none}
+.gauge .gb .nm{font:600 .66rem/1 var(--f-data);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gauge .gb:hover .nm,.gauge .gb.on .nm{color:var(--ink)}
+.ghint{font-size:.76rem;color:var(--faint)}
+.advice b{color:var(--ink);font-weight:600}
+.gauge .mark{position:absolute;top:-5px;pointer-events:none;width:4px;height:20px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--surface);transform:translateX(-50%);transition:left .25s}
 .gauge .lbls{position:relative;height:12px;font:500 .7rem/1 var(--f-data);color:var(--faint)}
 .gauge .lbls span{position:absolute;transform:translateX(-50%)}
 .gauge .lbls span:first-child{transform:none}
-.gauge .names{display:flex;gap:2px;font:600 .66rem/1 var(--f-data);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.gauge .names span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .keyrow{display:none;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font:500 .74rem/1.2 var(--f-data);color:var(--muted)}
 .keyrow span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .keyrow i{width:9px;height:9px;border-radius:50%}
@@ -191,10 +196,6 @@ input.hour:focus-visible{outline:2px solid var(--accent);outline-offset:4px;bord
 .hm .dl{font:500 .66rem var(--f-data);color:var(--faint);text-align:center}
 .hm .sep{grid-column:1/-1;height:4px}
 
-.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
-@media (max-width:820px){.two{grid-template-columns:minmax(0,1fr)}}
-.bands{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:.88rem;align-items:start}
-.bands .tag{font:600 .75rem/1 var(--f-data);padding:5px 8px;border-radius:4px;white-space:nowrap}
 footer{font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 footer a{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -256,7 +257,7 @@ footer a{color:var(--accent)}
       </div>
       <div class="big"><span class="num" id="nowNum">–</span><span class="unit">µg/m³ in <span id="nowRegion"></span></span></div>
       <div><span class="pill" id="nowPill"><i></i><span></span></span></div>
-      <div class="gauge" id="gauge" aria-hidden="true"></div>
+      <div class="gauge" id="gauge" role="group" aria-label="PM2.5 bands. Choose a band to see its advice."></div>
       <ul class="regions" id="regionList"></ul>
       <p class="advice" id="advice"></p>
     </div>
@@ -290,8 +291,7 @@ footer a{color:var(--accent)}
     <div class="hm-scroll"><div class="hm" id="hm"></div></div>
   </section>
 
-  <section class="two">
-    <div class="panel">
+  <section class="panel">
       <div class="sec-head">
         <span class="eyebrow">Time of day</span>
         <h2>When it peaks</h2>
@@ -302,15 +302,6 @@ footer a{color:var(--accent)}
         <span><span class="swl" style="border-color:var(--faint);border-top-style:dashed"></span>Earlier days</span>
       </div>
       <div class="chart" id="diurnal"></div>
-    </div>
-    <div class="panel">
-      <div class="sec-head">
-        <span class="eyebrow">Colour key</span>
-        <h2>NEA 1-hour PM2.5 bands</h2>
-        <p class="sub">Plan the next few hours. Values in µg/m³.</p>
-      </div>
-      <div class="bands" id="bandKey"></div>
-    </div>
   </section>
 
   <footer>
@@ -349,11 +340,25 @@ const fmtTs = t => `${fmtDay(t.slice(0,10))}, ${fmtHour(+t.slice(11,13))}`;
 /* ---------- band scale (gauge) ---------- */
 const GMAX = 300;
 const GSEG = [[0,55,"--b1","Normal"],[55,150,"--b2","Elevated"],[150,250,"--b3","High"],[250,GMAX,"--b4","V. high"]];
+let CUR_BAND = 0;
+function showAdvice(i, preview){
+  const b = BANDS[i], el = $("advice");
+  el.innerHTML = preview && i!==CUR_BAND ? `<b>${b.label} (${RANGES[i]}):</b> ${b.advice}` : b.advice;
+  document.querySelectorAll(".gauge .gb").forEach((x,k)=>x.classList.toggle("on", preview && k===i));
+}
 function buildGauge(){
   const g=$("gauge"); if(g.dataset.ready) return;
-  g.innerHTML = `<div class="segs">${GSEG.map(([a,b,c])=>`<div style="flex:${b-a};background:var(${c})"></div>`).join("")}<span class="mark" id="gMark"></span></div>
-    <div class="names">${GSEG.map(([a,b,,n])=>`<span style="flex:${b-a}">${n}</span>`).join("")}</div>
-    <div class="lbls"><span style="left:0">0</span>${[55,150,250].map(v=>`<span style="left:${v/GMAX*100}%">${v}</span>`).join("")}</div>`;
+  g.innerHTML = `<div class="gbands">${GSEG.map(([a,b,c,n],i)=>`<button type="button" class="gb" data-i="${i}" style="flex:${b-a}" aria-label="${BANDS[i].label}, ${RANGES[i]}: ${BANDS[i].advice}"><span class="bar" style="background:var(${c})"></span><span class="nm">${n}</span></button>`).join("")}<span class="mark" id="gMark"></span></div>
+    <div class="lbls"><span style="left:0">0</span>${[55,150,250].map(v=>`<span style="left:${v/GMAX*100}%">${v}</span>`).join("")}</div>
+    <p class="ghint">Tap or hover a band to see its advice.</p>`;
+  g.querySelectorAll(".gb").forEach(btn=>{
+    const i=+btn.dataset.i;
+    btn.addEventListener("pointerenter",()=>showAdvice(i,true));
+    btn.addEventListener("focus",()=>showAdvice(i,true));
+    btn.addEventListener("click",()=>showAdvice(i,true));
+    btn.addEventListener("pointerleave",e=>{ if(e.pointerType==="mouse") showAdvice(CUR_BAND,false); });
+    btn.addEventListener("blur",()=>showAdvice(CUR_BAND,false));
+  });
   g.dataset.ready="1";
 }
 function buildKeyRow(){ const k=$("keyRow"); if(k.dataset.ready) return; k.innerHTML = BANDS.map((b,i)=>`<span><i style="background:var(${b.c})"></i>${b.label} ${RANGES[i]}</span>`).join(""); k.dataset.ready="1"; }
@@ -477,7 +482,7 @@ function renderNow(i){
   const scale = Math.max(160, ...hr.vals);
   $("regionList").innerHTML = REG.map((r,k)=>({r,v:hr.vals[k]})).sort((a,b)=>b.v-a.v).map(({r,v})=>
     `<li><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
-  $("advice").textContent = b.advice;
+  CUR_BAND = BANDS.indexOf(b); showAdvice(CUR_BAND,false);
   $("mapTitle").textContent = isLatest ? "Latest reading by region" : "Reading by region at this hour";
   updateMap(hr);
 }
@@ -617,7 +622,7 @@ function drawHeat(){
 /* ---------- diurnal ---------- */
 function drawDiurnal(){
   const box=$("diurnal"); box.innerHTML="";
-  const W=Math.max(300,box.clientWidth||480), H=230, L=34, R=12, T=12, B=28;
+  const W=Math.max(300,box.clientWidth||480), H=W<560?230:260, L=34, R=12, T=12, B=28;
   const yMax = niceMax(Math.max(...diR,...diE)*1.08);
   const x=h=>L+h*(W-L-R)/23, y=v=>T+(1-v/yMax)*(H-T-B);
   const svg=el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Average PM2.5 by hour of day"},box);
@@ -641,7 +646,6 @@ function drawDiurnal(){
 }
 
 /* ---------- band key ---------- */
-$("bandKey").innerHTML = BANDS.map((b,i)=>`<span class="tag mono" style="background:var(${b.soft});color:var(--ink)"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(${b.c});margin-right:6px"></span>${RANGES[i]}</span><span><b>${b.n} · ${b.label}.</b> ${b.advice}</span>`).join("");
 
 /* ---------- boot + theme ---------- */
 function drawAll(){ renderNow(cur); drawDaily(); drawHeat(); drawDiurnal(); }
