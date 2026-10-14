@@ -89,6 +89,14 @@ header .titles{display:flex;flex-direction:column;gap:10px;min-width:0}
 .bubble span{font-size:.92rem;line-height:1.35;color:var(--ink)}
 .bubble small{font-size:.75rem;color:var(--faint)}
 @media (max-width:600px){.mood{max-width:none;flex-basis:100%}}
+.ava{cursor:pointer;border:0;background:transparent;padding:0}
+.bubble{transform-origin:left center}
+.bubble.pop{animation:pop .35s cubic-bezier(.3,1.5,.6,1)}
+@keyframes pop{0%{transform:scale(.9);opacity:.3}100%{transform:scale(1);opacity:1}}
+#moodLine{min-height:2.7em}
+#moodLine.typing::after{content:"";display:inline-block;width:2px;height:1em;margin-left:2px;vertical-align:-2px;background:var(--mc);animation:blink .7s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* cards (top row only) */
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:clamp(16px,2.4vw,24px);min-width:0}
@@ -230,9 +238,9 @@ footer a{color:var(--accent)}
       <h1>Singapore Haze Watch</h1>
       <p class="sub" id="lede">Hourly PM2.5 across Singapore since 1 Oct.</p>
     </div>
-    <div class="mood" id="mood" aria-live="polite">
-      <div class="ava" id="ava" role="img" aria-label="Cartoon of JH reacting to the haze"></div>
-      <div class="bubble"><b id="moodName"></b><span id="moodLine"></span><small id="moodNote"></small></div>
+    <div class="mood" id="mood">
+      <button class="ava" id="ava" type="button" aria-label="Cartoon of JH. Tap for another line."></button>
+      <div class="bubble" id="bubble"><b id="moodName"></b><span id="moodLine" aria-hidden="true"></span><span class="sr" id="moodSr" aria-live="polite"></span><small id="moodNote"></small></div>
     </div>
     <div class="hdr-side">
       <div class="hdr-btns">
@@ -395,10 +403,30 @@ $("keyRow").innerHTML = BANDS.map((b,i)=>`<span><i style="background:var(${b.c})
 
 /* ---------- JH avatar: reacts to the island average ---------- */
 const MOODS = [
-  {name:"Happy JH",  line:"Air's clean! Going for a jog, then kopi."},
-  {name:"Meh JH",    line:"Bit hazy leh. Short walk only, no jogging today."},
-  {name:"Masked JH", line:"Mask on. Windows shut, air purifier on full blast."},
-  {name:"Hiding JH", line:"Nope. Not leaving the house. Food delivery only."}
+  {name:"Happy JH", lines:[
+    "Air's clean! Going for a jog, then kopi.",
+    "Breathe in… ahh. What a breath of fresh air.",
+    "Clear skies, clear mind. Even my glasses look cleaner.",
+    "PSI? More like PS-yay!",
+    "So clear I can see my whole weekend from here."]},
+  {name:"Meh JH", lines:[
+    "Bit hazy leh. Short walk only, no jogging today.",
+    "Things are a bit hazy… and I don't mean my memory.",
+    "Not great, not terrible. Very mid-air.",
+    "My lungs just filed a polite complaint.",
+    "The sky is giving 'filter' vibes. Not the good kind."]},
+  {name:"Masked JH", lines:[
+    "Mask on. Windows shut, air purifier on full blast.",
+    "I'm not hiding my face. I'm masking my feelings.",
+    "Haze is high. My motivation to go out is low.",
+    "This air is too thick to breathe, but just right to chew.",
+    "Outdoor plans? That would be a mist-ake."]},
+  {name:"Hiding JH", lines:[
+    "Nope. Not leaving the house. Food delivery only.",
+    "The air is so bad, even the haze wants to go home.",
+    "I'm not antisocial. I'm anti-smoke-ial.",
+    "Breathing is now a premium feature. Indoors only.",
+    "Visibility: zero. Couch attendance: 100%."]}
 ];
 function avatarSVG(m){
   const skin="#f3c9a1", skin2="#e6b087", hair="#1d1918", ink="#1a1a1a", frame="#5b5048";
@@ -457,21 +485,39 @@ function avatarSVG(m){
     </g>
   </svg>`;
 }
-let LAST_MOOD = -1;
+let LAST_MOOD = -1, LAST_LINE = -1, TYPE_T = null;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function say(m){
+  const lines = MOODS[m].lines;
+  let i; do{ i = Math.floor(Math.random()*lines.length); }while(lines.length>1 && i===LAST_LINE);
+  LAST_LINE = i;
+  const text = lines[i], el = $("moodLine"), bub = $("bubble");
+  $("moodSr").textContent = text;
+  clearTimeout(TYPE_T);
+  bub.classList.remove("pop"); void bub.offsetWidth; bub.classList.add("pop");
+  if(reduceMotion){ el.textContent = text; el.classList.remove("typing"); return; }
+  let n = 0; el.textContent = ""; el.classList.add("typing");
+  (function tick(){
+    n++; el.textContent = text.slice(0,n);
+    if(n < text.length) TYPE_T = setTimeout(tick, /[.,?!…]/.test(text[n-1]) ? 160 : 26);
+    else TYPE_T = setTimeout(()=>el.classList.remove("typing"), 900);
+  })();
+}
 function setMood(avg){
-  const m = bandIx(avg), b = BANDS[m];
-  const box = $("mood");
+  const m = bandIx(avg), b = BANDS[m], box = $("mood");
   box.style.setProperty("--mbg", `var(${b.soft})`);
   box.style.setProperty("--mc", `var(${b.c})`);
   if(m !== LAST_MOOD){
     $("ava").innerHTML = avatarSVG(m);
     if(LAST_MOOD !== -1){ const a=$("ava"); a.classList.remove("shake"); void a.offsetWidth; a.classList.add("shake"); }
     $("moodName").textContent = MOODS[m].name;
-    $("moodLine").textContent = MOODS[m].line;
-    LAST_MOOD = m;
+    LAST_MOOD = m; LAST_LINE = -1;
+    say(m);
   }
   $("moodNote").textContent = `Island average ${Math.round(avg)} µg/m³ · ${b.label}`;
 }
+$("ava").addEventListener("click", ()=>{ if(LAST_MOOD>=0) say(LAST_MOOD); });
+setInterval(()=>{ if(LAST_MOOD>=0 && !window.__timer && !document.hidden) say(LAST_MOOD); }, 12000);   // a new line every 12s while idle
 
 /* ---------- map (Leaflet + OneMap, muted to grey) ---------- */
 const HOME=[[1.262,103.64],[1.468,103.975]];
