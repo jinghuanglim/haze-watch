@@ -66,7 +66,7 @@ h2{font-size:1.45rem;font-weight:700;line-height:1.15}
 p{margin:0}
 .eyebrow{font:600 .72rem/1 var(--f-data);text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
 .mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
-.sub{color:var(--muted);max-width:62ch}
+.sub{color:var(--muted);text-wrap:pretty}
 
 header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
 header .titles{display:flex;flex-direction:column;gap:10px;min-width:0}
@@ -445,7 +445,7 @@ $("insights").innerHTML = [
   `Cleanest day: <b>${fmtDay(cleanest.d)}</b> (${Math.round(cleanest.avg)}). Haziest: <b>${fmtDay(worstDay.d)}</b> (${Math.round(worstDay.avg)}).`,
   `This week, worst around <b>${fmtHour(peakHr)}</b>, cleanest around <b>${fmtHour(lowHr)}</b>.`
 ].map(t=>`<p class="insight">${t}</p>`).join("");
-$("lede").textContent = `Hourly PM2.5 across Singapore since 1 Oct. Past week average: ${Math.round(m7)} µg/m³ (${band(m7).label}).`;
+$("lede").textContent = `Hourly PM2.5 across Singapore since 1 Oct. Past week average: ${Math.round(m7)}\u00A0µg/m³\u00A0(${band(m7).label}).`;
 $("foot").textContent = `${hours.length} hourly readings from ${fmtDay(days[0].d)} to ${fmtTs(last.t)}.`;
 
 /* ---------- now panel ---------- */
