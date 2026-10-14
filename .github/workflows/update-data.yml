@@ -2,8 +2,8 @@ name: Update PM2.5 data
 
 on:
   schedule:
-    # Every hour at :12 and :52 (readings usually land around :45 to :00).
-    - cron: "12,52 * * * *"
+    # Every 15 minutes (:00, :15, :30, :45 UTC). GitHub may start scheduled runs a few minutes late.
+    - cron: "0,15,30,45 * * * *"
   workflow_dispatch:
 
 permissions:

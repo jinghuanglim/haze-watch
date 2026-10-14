@@ -66,6 +66,11 @@ header .titles{display:flex;flex-direction:column;gap:10px;min-width:0}
 @media (max-width:600px){.hdr-side{flex-direction:row-reverse;justify-content:space-between;align-items:center;width:100%}}
 .theme-btn{font:600 .8rem/1 var(--f-body);background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 13px;cursor:pointer;white-space:nowrap}
 .theme-btn:hover{border-color:var(--accent)}
+.hdr-btns{display:flex;gap:8px}
+.theme-btn:disabled{opacity:.6;cursor:default}
+.spin{display:inline-block}
+.busy .spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .live{display:inline-flex;align-items:center;gap:8px;font:500 .8rem/1.2 var(--f-body);color:var(--muted)}
 .live i{width:8px;height:8px;border-radius:50%;background:var(--b1);flex:none;animation:pulse 2s infinite}
 .live.stale i{background:var(--b2);animation:none}
@@ -212,7 +217,10 @@ footer a{color:var(--accent)}
       <p class="sub" id="lede">Hourly PM2.5 across Singapore since 1 Oct.</p>
     </div>
     <div class="hdr-side">
-      <button class="theme-btn" id="themeBtn" type="button"></button>
+      <div class="hdr-btns">
+        <button class="theme-btn" id="refreshBtn" type="button" aria-label="Refresh readings now"><span class="spin">↻</span> Refresh</button>
+        <button class="theme-btn" id="themeBtn" type="button"></button>
+      </div>
       <span class="live" id="live"><i></i><span>Connecting…</span></span>
     </div>
   </header>
@@ -307,7 +315,7 @@ footer a{color:var(--accent)}
 
   <footer>
     <span id="foot"></span>
-    <span>Source: NEA PM2.5 readings via <a href="https://data.gov.sg/datasets/d_e1058d6974c877257e32048ab128ad83/view" target="_blank" rel="noopener">data.gov.sg</a>. Health guidance: <a href="https://www.haze.gov.sg" target="_blank" rel="noopener">haze.gov.sg</a>. Updated every hour.</span>
+    <span>Source: NEA PM2.5 readings via <a href="https://data.gov.sg/datasets/d_e1058d6974c877257e32048ab128ad83/view" target="_blank" rel="noopener">data.gov.sg</a>. Health guidance: <a href="https://www.haze.gov.sg" target="_blank" rel="noopener">haze.gov.sg</a>. Data refreshes every 15 minutes; NEA publishes new readings hourly.</span>
   </footer>
 </div>
 
@@ -651,24 +659,46 @@ window.__latest=last.t;
 
 /* ---------- data loading ---------- */
 // data.json is refreshed hourly by a GitHub Action. Visitors never call the API.
-const REFRESH_MIN = 10;
+const REFRESH_MIN = 5;   // the page re-reads data.json every 5 min; the GitHub Action updates it every 15 min
+const API = "https://api-open.data.gov.sg/v2/real-time/api/pm25";   // public, no key: used only by the Refresh button
+const START = "2026-10-01", ORDER = ["north","south","east","west","central"];
+async function fetchLiveDay(d){
+  const rows=[]; let tok=null;
+  do{
+    const r = await fetch(API+"?date="+d+(tok?"&paginationToken="+encodeURIComponent(tok):""),{cache:"no-store"});
+    if(!r.ok) throw new Error("API "+r.status);
+    const j = await r.json(); if(j.code!==0) throw new Error(j.errorMsg||"API error");
+    (j.data.items||[]).forEach(it=>{ const v=ORDER.map(k=>it.readings.pm25_one_hourly[k]); if(v.every(x=>typeof x==="number")) rows.push([it.timestamp,v]); });
+    tok = j.data.paginationToken;
+  }while(tok);
+  return rows;
+}
+function mergeRows(data, rows){
+  const m = new Map(data.t.map((t,i)=>[t,data.v[i]]));
+  rows.forEach(([t,v])=>{ if(t.slice(0,10)>=START) m.set(t,v); });
+  const t=[...m.keys()].sort(); return {regions:data.regions||ORDER, t, v:t.map(k=>m.get(k))};
+}
 const clock = d => new Intl.DateTimeFormat("en-SG",{timeZone:"Asia/Singapore",hour:"numeric",minute:"2-digit"}).format(d);
 function setLive(ok,msg){ const l=$("live"); l.classList.toggle("stale",!ok); l.querySelector("span").textContent=msg; }
 let first = true;
-async function load(){
+async function load(manual){
   try{
     const r = await fetch("data.json?ts="+Date.now(), {cache:"no-store"});
     if(!r.ok) throw new Error("Couldn't load the data file ("+r.status+").");
-    const data = await r.json();
+    let data = await r.json();
+    if(manual){                                   // top up with the very latest hour straight from the API
+      try{ const today=sgDate(); data = mergeRows(data, await fetchLiveDay(today)); }catch(e){ /* fall back to data.json */ }
+      if(window.__timer){ clearInterval(window.__timer); window.__timer=null; }
+    }
     if(!data.t || !data.t.length) throw new Error("The data file is empty.");
     const latest = data.t[data.t.length-1];
-    if(first || (latest !== window.__latest && !window.__timer)) boot(data);
+    if(first || manual || (latest !== window.__latest && !window.__timer)) boot(data);
     document.body.classList.remove("pending");
     if(first){ if(LMAP){ LMAP.invalidateSize(); LMAP.fitBounds(HOME); } window.__charts && window.__charts(); }
     first=false;
     const ageH = (Date.now() - new Date(latest).getTime())/36e5;
     if(ageH > 3) setLive(false, `Readings are ${Math.floor(ageH)}h old · checked ${clock(new Date())}`);
-    else setLive(true, `Updated hourly · checked ${clock(new Date())}`);
+    else setLive(true, `Latest reading ${fmtHour(+latest.slice(11,13))} · checked ${clock(new Date())}`);
   }catch(err){
     if(first){ $("loadMsg").textContent = err.message+" Please try again."; $("retry").hidden=false; }
     else setLive(false, `Couldn't refresh at ${clock(new Date())} · showing last data`);
@@ -678,6 +708,12 @@ function syncThemeBtn(){ const d=document.documentElement.dataset.theme==="dark"
 $("themeBtn").addEventListener("click",()=>{ const next = document.documentElement.dataset.theme==="dark" ? "light" : "dark"; document.documentElement.dataset.theme = next; try{ localStorage.setItem("theme",next); }catch(e){} syncThemeBtn(); });
 syncThemeBtn();
 $("retry").addEventListener("click",()=>{ $("retry").hidden=true; load(); });
+$("refreshBtn").addEventListener("click", async ()=>{
+  const b=$("refreshBtn"); if(b.disabled) return;
+  b.disabled=true; b.classList.add("busy");
+  await load(true);
+  b.disabled=false; b.classList.remove("busy");
+});
 try{ matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>window.__draw&&window.__draw()); }catch(e){}
 new MutationObserver(()=>window.__draw&&window.__draw()).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 let rz, lastW=innerWidth;
