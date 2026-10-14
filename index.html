@@ -147,9 +147,8 @@ footer a{color:var(--accent)}
   </header>
   <div class="loading" id="loading">
     <span class="eyebrow">Live data</span>
-    <h2 id="loadMsg">Loading readings since 1 Oct from data.gov.sg…</h2>
-    <div class="bar"><span id="loadBar"></span></div>
-    <button class="btn" id="retry" type="button" hidden>Try again</button>
+    <h2 id="loadMsg">Loading readings…</h2>
+        <button class="btn" id="retry" type="button" hidden>Try again</button>
   </div>
 
   <section class="status">
@@ -230,7 +229,7 @@ footer a{color:var(--accent)}
 
   <footer>
     <span id="foot"></span>
-    <span>Source: NEA PM2.5 readings via <a href="https://data.gov.sg/datasets/d_e1058d6974c877257e32048ab128ad83/view" target="_blank" rel="noopener">data.gov.sg</a>. Health guidance: <a href="https://www.haze.gov.sg" target="_blank" rel="noopener">haze.gov.sg</a>. Data loads live from the public API in your browser and refreshes every 15 minutes.</span>
+    <span>Source: NEA PM2.5 readings via <a href="https://data.gov.sg/datasets/d_e1058d6974c877257e32048ab128ad83/view" target="_blank" rel="noopener">data.gov.sg</a>. Health guidance: <a href="https://www.haze.gov.sg" target="_blank" rel="noopener">haze.gov.sg</a>. Readings are updated every hour.</span>
   </footer>
 </div>
 
@@ -514,63 +513,27 @@ window.__latest=last.t;
 
 }
 
-/* ---------- live loading ---------- */
-const API = "https://api-open.data.gov.sg/v2/real-time/api/pm25";
-const START = "2026-10-01", REFRESH_MIN = 15;
-const ORDER = ["north","south","east","west","central"];
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
-const sgToday = () => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore"}).format(new Date());
-const addDays = (d,n) => { const t=new Date(d+"T00:00:00Z"); t.setUTCDate(t.getUTCDate()+n); return t.toISOString().slice(0,10); };
-const store = {
-  get(k){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } },
-  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
-};
-async function getDay(d){
-  let items=[], tok=null;
-  do{
-    const url = API+"?date="+d+(tok?"&paginationToken="+encodeURIComponent(tok):"");
-    let j=null;
-    for(let a=0;a<5 && !j;a++){
-      let r; try{ r=await fetch(url,{cache:"no-store"}); }catch(e){ await sleep(1200*(a+1)); continue; }
-      if(r.status===429 || r.status>=500){ await sleep(1500*(a+1)); continue; }
-      if(!r.ok) throw new Error("The API returned an error ("+r.status+").");
-      j = await r.json();
-    }
-    if(!j) throw new Error("The API is busy right now.");
-    if(j.code!==0) throw new Error(j.errorMsg || "The API returned an error.");
-    items = items.concat(j.data.items||[]); tok = j.data.paginationToken;
-  }while(tok);
-  return items.map(it=>[it.timestamp, ORDER.map(k=>it.readings.pm25_one_hourly[k])]);
-}
-async function fetchAll(onProgress){
-  const today = sgToday();
-  const dates = []; for(let d=START; d<=today; d=addDays(d,1)) dates.push(d);
-  const out = {}; let done=0;
-  const todo = [];
-  dates.forEach(d=>{ const c = d<today ? store.get("pm25:"+d) : null; if(c && c.length>=24){ out[d]=c; done++; } else todo.push(d); });
-  onProgress(done,dates.length);
-  let i=0;
-  async function worker(){ while(i<todo.length){ const d=todo[i++]; out[d]=await getDay(d); if(d<today && out[d].length>=24) store.set("pm25:"+d,out[d]); done++; onProgress(done,dates.length); } }
-  await Promise.all([worker(),worker()]);
-  const rows = new Map();
-  dates.forEach(d=>(out[d]||[]).forEach(([t,v])=>{ if(v.every(x=>typeof x==="number")) rows.set(t,v); }));
-  const t = [...rows.keys()].sort();
-  return {regions:ORDER, t, v:t.map(k=>rows.get(k))};
-}
+/* ---------- data loading ---------- */
+// data.json is refreshed hourly by a GitHub Action. Visitors never call the API.
+const REFRESH_MIN = 10;
+const clock = d => new Intl.DateTimeFormat("en-SG",{timeZone:"Asia/Singapore",hour:"numeric",minute:"2-digit"}).format(d);
 function setLive(ok,msg){ const l=$("live"); l.classList.toggle("stale",!ok); l.querySelector("span").textContent=msg; }
-const clock = () => new Intl.DateTimeFormat("en-SG",{timeZone:"Asia/Singapore",hour:"numeric",minute:"2-digit"}).format(new Date());
 let first = true;
 async function load(){
   try{
-    const data = await fetchAll((d,n)=>{ if(first){ $("loadBar").style.width=(d/n*100)+"%"; $("loadMsg").textContent=`Loading readings since 1 Oct from data.gov.sg… ${d}/${n} days`; } });
-    if(!data.t.length) throw new Error("No readings came back.");
-    const changed = data.t[data.t.length-1] !== window.__latest;
-    if(first || (changed && !window.__timer)) boot(data);
+    const r = await fetch("data.json?ts="+Date.now(), {cache:"no-store"});
+    if(!r.ok) throw new Error("Couldn't load the data file ("+r.status+").");
+    const data = await r.json();
+    if(!data.t || !data.t.length) throw new Error("The data file is empty.");
+    const latest = data.t[data.t.length-1];
+    if(first || (latest !== window.__latest && !window.__timer)) boot(data);
     document.body.classList.remove("pending"); first=false;
-    setLive(true, `Live · checked ${clock()} · every ${REFRESH_MIN} min`);
+    const ageH = (Date.now() - new Date(latest).getTime())/36e5;
+    if(ageH > 3) setLive(false, `Readings are ${Math.floor(ageH)}h old · checked ${clock(new Date())}`);
+    else setLive(true, `Updated hourly · checked ${clock(new Date())}`);
   }catch(err){
-    if(first){ $("loadMsg").textContent = err.message+" Check your connection and try again."; $("retry").hidden=false; }
-    else setLive(false, `Couldn't refresh at ${clock()} · showing last data`);
+    if(first){ $("loadMsg").textContent = err.message+" Please try again."; $("retry").hidden=false; }
+    else setLive(false, `Couldn't refresh at ${clock(new Date())} · showing last data`);
   }
 }
 $("retry").addEventListener("click",()=>{ $("retry").hidden=true; load(); });
