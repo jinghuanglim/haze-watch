@@ -686,9 +686,16 @@ async function load(manual){
     const r = await fetch("data.json?ts="+Date.now(), {cache:"no-store"});
     if(!r.ok) throw new Error("Couldn't load the data file ("+r.status+").");
     let data = await r.json();
-    if(manual){                                   // top up with the very latest hour straight from the API
-      try{ const today=sgDate(); data = mergeRows(data, await fetchLiveDay(today)); }catch(e){ /* fall back to data.json */ }
-      if(window.__timer){ clearInterval(window.__timer); window.__timer=null; }
+    // Top up from the API when asked, or when the saved file is behind (e.g. GitHub's scheduler running late).
+    const lastSaved = data.t[data.t.length-1];
+    const behind = (Date.now() - new Date(lastSaved).getTime()) > 75*60*1000;
+    if(manual || behind){
+      try{
+        const today=sgDate(), from=lastSaved.slice(0,10);
+        const ds = from<today ? [from,today] : [today];     // also fill the gap from the last saved day
+        for(const d of ds) data = mergeRows(data, await fetchLiveDay(d));
+      }catch(e){ /* keep data.json as is */ }
+      if(manual && window.__timer){ clearInterval(window.__timer); window.__timer=null; }
     }
     if(!data.t || !data.t.length) throw new Error("The data file is empty.");
     const latest = data.t[data.t.length-1];
