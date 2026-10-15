@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark light">
-<script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"dark";}catch(e){document.documentElement.dataset.theme="dark";}</script>
+<script>/* Theme follows Singapore daylight: light 7am-7pm, dark otherwise. A manual pick lasts until the next switch. */
+(function(){var m=Math.floor((Date.now()/6e4+480)%1440),t=(m>=420&&m<1140)?"light":"dark";
+try{localStorage.removeItem("theme");var o=JSON.parse(localStorage.getItem("themeOverride"));if(o&&o.until>Date.now())t=o.theme;}catch(e){}
+document.documentElement.dataset.theme=t;})();</script>
 <meta name="description" content="JH's haze diary: live PM2.5 across Singapore, with a map, day-by-day trend and daily patterns.">
 <title>Singapore Haze Watch</title>
 <meta property="og:type" content="website">
@@ -149,6 +152,16 @@ h2{font-size:clamp(1.35rem,2.6vw,1.7rem);line-height:1.2}
 @media (prefers-reduced-motion:reduce){.veil-sun{opacity:.7;filter:blur(4px)}}
 .note{display:block;max-width:44ch;font-size:.84rem;line-height:1.4;padding:7px 11px;border-radius:10px;background:var(--b2-soft);color:var(--ink);border:1px solid color-mix(in srgb,var(--b2) 45%,transparent)}
 .note[hidden]{display:none}
+
+/* theme toast: heads-up before the automatic switch, and confirmation after a manual pick */
+.toast{position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translate(-50%,0);z-index:9000;
+  display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100vw - 32px);padding:10px 12px 10px 16px;border-radius:14px;
+  background:var(--ink);color:var(--bg);font:500 .88rem/1.35 var(--f-body);box-shadow:0 10px 30px rgba(0,0,0,.25);
+  transition:opacity .3s ease,transform .3s ease}
+.toast[hidden]{display:flex;opacity:0;transform:translate(-50%,12px);pointer-events:none;visibility:hidden}
+.toast button{flex:none;font:600 .82rem/1 var(--f-body);color:var(--ink);background:var(--bg);border:0;border-radius:999px;padding:8px 12px;cursor:pointer}
+.toast button[hidden]{display:none}
+html.theme-fade, html.theme-fade *{transition:background-color .8s ease,color .8s ease,border-color .8s ease,fill .8s ease!important}
 
 /* loading */
 .pending main > section,.pending footer{display:none}
@@ -362,6 +375,7 @@ footer a{color:var(--ink)}
 </style>
 </head>
 <body class="pending">
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toastTxt"></span><button id="toastBtn" type="button" hidden></button></div>
 <div class="veil" id="veil" role="status" aria-live="polite">
   <div class="veil-sun"></div>
   <div class="veil-smog s1"></div><div class="veil-smog s2"></div><div class="veil-smog s3"></div><div class="veil-smog s4"></div>
@@ -1271,9 +1285,62 @@ async function load(manual){
     else setLive(false, `Couldn't refresh at ${clock(new Date())} · showing last data`);
   }
 }
-function syncThemeBtn(){ const d=document.documentElement.dataset.theme==="dark", b=$("themeBtn"); b.textContent = d ? "☀ Light" : "☾ Dark"; b.setAttribute("aria-label", d ? "Switch to light mode" : "Switch to dark mode"); }
-$("themeBtn").addEventListener("click",()=>{ const next = document.documentElement.dataset.theme==="dark" ? "light" : "dark"; document.documentElement.dataset.theme = next; try{ localStorage.setItem("theme",next); }catch(e){} syncThemeBtn(); });
-syncThemeBtn();
+/* ---------- theme: follows the time of day ---------- */
+// Light from 7am to 7pm Singapore time (sunrise/sunset barely move here), dark otherwise.
+// The toggle is a manual override that lasts until the next automatic switch.
+const DAY_FROM = 7*60, DAY_TO = 19*60, WARN_MIN = 15;          // minutes after midnight; heads-up 15 min before a switch
+const sgMin = () => Math.floor((Date.now()/6e4 + 480) % 1440);  // Singapore is UTC+8 all year
+const autoTheme = () => { const m=sgMin(); return m>=DAY_FROM && m<DAY_TO ? "light" : "dark"; };
+function nextSwitch(){                                          // time (ms) of the next automatic switch
+  const m=sgMin(), to = m<DAY_FROM ? DAY_FROM : m<DAY_TO ? DAY_TO : DAY_FROM+1440;
+  return Math.floor(Date.now()/6e4)*6e4 + (to-m)*6e4;
+}
+const at = ms => clock(new Date(ms)).replace(":00","");         // "7 pm"
+function getOverride(){ try{ const o=JSON.parse(localStorage.getItem("themeOverride")); if(o && o.until>Date.now()) return o; }catch(e){} return null; }
+function setOverride(theme, until){ try{ theme ? localStorage.setItem("themeOverride", JSON.stringify({theme,until})) : localStorage.removeItem("themeOverride"); }catch(e){} }
+let toastTimer;
+function toast(msg, btnText, onBtn, ms){
+  $("toastTxt").textContent = msg; const b=$("toastBtn");
+  b.hidden = !btnText; b.textContent = btnText||""; b.onclick = onBtn ? ()=>{ onBtn(); } : null;
+  $("toast").hidden = false; clearTimeout(toastTimer);
+  if(ms) toastTimer = setTimeout(()=>{ $("toast").hidden = true; }, ms);
+}
+function setTheme(t, fade){
+  const root=document.documentElement; if(root.dataset.theme===t) return;
+  if(fade && !reduceMotion){ root.classList.add("theme-fade"); setTimeout(()=>root.classList.remove("theme-fade"), 900); }
+  root.dataset.theme = t;
+}
+function syncThemeBtn(){
+  const d=document.documentElement.dataset.theme==="dark", b=$("themeBtn"), o=getOverride(), sw=at(nextSwitch());
+  b.textContent = d ? "☀ Light" : "☾ Dark";
+  b.title = o ? `Your pick. Back to automatic at ${at(o.until)}.` : `Automatic: switches to ${autoTheme()==="light"?"dark":"light"} at ${sw}.`;
+  b.setAttribute("aria-label", (d ? "Switch to light mode. " : "Switch to dark mode. ") + b.title);
+}
+let warnedFor = 0;
+function tickTheme(){
+  const o=getOverride();
+  setTheme(o ? o.theme : autoTheme(), true);
+  syncThemeBtn();
+  // heads-up shortly before an automatic switch, with a way to keep the current look
+  const sw=nextSwitch(), left=(sw-Date.now())/6e4;
+  if(!o && left<=WARN_MIN && warnedFor!==sw){
+    warnedFor = sw; const now=document.documentElement.dataset.theme, to = now==="light" ? "dark" : "light";
+    toast(`${to==="dark"?"☾ Dark":"☀ Light"} mode at ${at(sw)}`, `Keep ${now}`, ()=>{
+      setOverride(now, sw + 12*36e5);                              // keep it until the switch after this one
+      $("toast").hidden = true; syncThemeBtn();
+    });
+  }
+  if(!o && left>WARN_MIN && warnedFor && $("toastBtn").textContent.startsWith("Keep")) $("toast").hidden = true;
+}
+$("themeBtn").addEventListener("click",()=>{
+  const next = document.documentElement.dataset.theme==="dark" ? "light" : "dark", sw=nextSwitch();
+  if(next===autoTheme()){ setOverride(null); toast(`${next==="dark"?"☾ Dark":"☀ Light"} mode · automatic again`, null, null, 3500); }
+  else { setOverride(next, sw); toast(`${next==="dark"?"☾ Dark":"☀ Light"} mode until ${at(sw)}, then automatic`, "Undo", ()=>{ setOverride(null); tickTheme(); $("toast").hidden=true; }, 5000); }
+  setTheme(next, true); syncThemeBtn();
+});
+tickTheme();
+setInterval(tickTheme, 30*1000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) tickTheme(); });
 $("retry").addEventListener("click",()=>{ $("retry").hidden=true; load(); });
 $("refreshBtn").addEventListener("click", async ()=>{
   const b=$("refreshBtn"); if(b.disabled) return;
