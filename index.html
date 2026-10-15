@@ -291,11 +291,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
   opacity:.82;transform:rotate(-4deg);
   clip-path:polygon(4% 0,96% 0,100% 11%,95.5% 23%,100% 35%,96% 48%,100% 60%,95.5% 73%,100% 86%,96% 100%,4% 100%,0 87%,4.5% 74%,0 61%,4% 49%,0 36%,4.5% 24%,0 12%)}
 :root[data-theme="dark"] .sect::before,:root[data-theme="dark"] .card::before{opacity:.72;filter:saturate(1.15) brightness(1.15)}
-main section.sect:nth-of-type(odd)::before{transform:rotate(3deg);left:auto;right:clamp(18px,4vw,34px);
+.dots::before{
   background:
     linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,0) 45%,rgba(0,0,0,.07)),
     radial-gradient(circle at 5px 5px,rgba(255,255,255,.62) 1.6px,transparent 2.2px) 0 0/11px 11px,
-    var(--t2)}
+    var(--t2)!important}
+.tape-r::before{left:auto!important;right:clamp(18px,4vw,34px);transform:rotate(3deg)}
 .now.card::before{left:auto;right:30px;transform:rotate(4deg);width:64px}
 .facts.card::before{left:auto;right:28px;transform:rotate(5deg);width:56px}
 .mapbox.card::before{transform:rotate(-6deg);width:66px}
@@ -390,7 +391,7 @@ footer a{color:var(--ink)}
     </div>
 
     <div class="side">
-      <div class="now card">
+      <div class="now card dots">
         <span class="kicker">How bad is it?</span>
         <div class="verdict" id="verdict"></div>
         <h2 id="nowHead">Worst spot right now</h2>
@@ -403,7 +404,7 @@ footer a{color:var(--ink)}
     </div>
   </section>
 
-  <section class="sect">
+  <section class="sect dots">
     <div class="sec-head">
       <span class="kicker">Day by day</span>
       <h2 id="dailyHead">Day by day</h2>
@@ -417,7 +418,7 @@ footer a{color:var(--ink)}
     <div class="chart" id="daily"></div>
   </section>
 
-  <section class="sect">
+  <section class="sect tape-r">
     <div class="sec-head">
       <span class="kicker">Who's suffering most</span>
       <h2 id="hmHead">Where it was worst</h2>
@@ -431,7 +432,7 @@ footer a{color:var(--ink)}
     <div class="hm-scroll"><div class="hm" id="hm"></div></div>
   </section>
 
-  <section class="sect">
+  <section class="sect dots">
     <div class="sec-head">
       <span class="kicker">Time of day</span>
       <h2 id="diHead">When it peaks</h2>
