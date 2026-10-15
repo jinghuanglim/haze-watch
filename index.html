@@ -193,7 +193,7 @@ input.hour::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 
 /* reading panel: the one card on the page */
-.now{display:flex;flex-direction:column;gap:16px;background:color-mix(in srgb,var(--tint-soft) 45%,var(--surface));border-radius:14px;padding:clamp(18px,2.4vw,24px);box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.now{display:flex;flex-direction:column;gap:16px}
 .big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .big .n{font:400 clamp(3rem,6.4vw,3.8rem)/1 var(--f-display);font-variant-numeric:tabular-nums}
 .big .unit{color:var(--muted);font-size:.95rem}
@@ -242,7 +242,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 @media (max-width:600px){.windbox{padding:5px 9px 5px 5px;gap:6px}.windbox svg{width:26px;height:26px}.windbox b{font-size:.76rem}.windbox span{font-size:.7rem}}
 /* verdict */
 .verdict{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.vd{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--surface) 70%,transparent);min-width:0}
+.vd{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--tint-soft) 55%,var(--card));min-width:0}
 .vd .vk{font-size:.76rem;color:var(--muted)}
 .vd b{display:flex;align-items:center;gap:7px;font:400 1.15rem/1.15 var(--f-display);color:var(--ink)}
 .vd b i{width:10px;height:10px;flex:none}
@@ -295,6 +295,7 @@ main section.sect:nth-of-type(odd)::before{transform:rotate(3deg);left:auto;righ
     linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,0) 45%,rgba(0,0,0,.07)),
     radial-gradient(circle at 5px 5px,rgba(255,255,255,.62) 1.6px,transparent 2.2px) 0 0/11px 11px,
     var(--t2)}
+.now.card::before{left:auto;right:30px;transform:rotate(4deg);width:64px}
 .facts.card::before{left:auto;right:28px;transform:rotate(5deg);width:56px}
 .mapbox.card::before{transform:rotate(-6deg);width:66px}
 .sec-head{display:flex;flex-direction:column;gap:6px;margin-bottom:22px;max-width:none}
@@ -387,7 +388,7 @@ footer a{color:var(--ink)}
     </div>
 
     <div class="side">
-      <div class="now">
+      <div class="now card">
         <div class="verdict" id="verdict"></div>
         <h2 id="nowHead">Worst spot right now</h2>
         <div class="big"><span class="n" id="nowNum">–</span><span class="unit">µg/m³ in <span id="nowRegion"></span></span></div>
