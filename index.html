@@ -458,7 +458,7 @@ footer a{color:var(--ink)}
       <div id="map" class="leaf" role="region" aria-label="Map of Singapore showing PM2.5 by region"></div>
       <div class="rdetail rp" id="rdetail" aria-live="polite" hidden></div>
       <div class="keyrow" id="keyRow"></div>
-      <p class="maphint">Numbers are PM2.5 (µg/m³). Arrows show the change from the hour before. Tap a region for its last 12 hours.</p>
+      <p class="maphint">Numbers are PM2.5 (µg/m³). Arrows show the change from the hour before. Tap a region for its last 24 hours.</p>
       <div class="timebar">
         <div class="dayrow">
           <button class="btn ghost icon" id="prevDay" type="button" aria-label="Previous day">‹</button>
@@ -833,15 +833,15 @@ function trendOf(i, r){
   return {d, cls: d>=3 ? "up" : d<=-3 ? "down" : "", sym: d>=3 ? "↑" : d<=-3 ? "↓" : "→",
           txt: d>=3 ? `up ${d} from ${fmtHour(p.h)}` : d<=-3 ? `down ${-d} from ${fmtHour(p.h)}` : `steady since ${fmtHour(p.h)}`};
 }
-// Small 12-hour line chart for one region, with NEA band lines
+// Small 24-hour line chart for one region, with NEA band lines
 function regionSpark(i, r){
-  const from=Math.max(0,i-11), pts=HRS.slice(from,i+1).map(h=>({v:h.vals[r], h:h.h}));
+  const from=Math.max(0,i-23), pts=HRS.slice(from,i+1).map(h=>({v:h.vals[r], h:h.h, d:h.d}));
   const W=220, H=70, top=Math.max(80, ...pts.map(p=>p.v))*1.12, x=k=>20+k*(W-26)/Math.max(1,pts.length-1), y=v=>H-6-(v/top)*(H-14);
   const lines=[55,150,250].filter(t=>t<top).map(t=>`<line x1="0" x2="${W}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}" stroke="var(--faint)" stroke-opacity=".45" stroke-dasharray="2 4"/><text x="0" y="${(y(t)-2).toFixed(1)}" font-size="10" font-family="var(--f-hand)" fill="var(--faint)">${t}</text>`).join("");
   const path=pts.map((p,k)=>`${k?"L":"M"}${x(k).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
-  const dots=pts.map((p,k)=>`<circle cx="${x(k).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="${k===pts.length-1?3.6:2}" fill="var(${band(p.v).c})"/>`).join("");
+  const dots=pts.map((p,k)=>`<circle cx="${x(k).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="${k===pts.length-1?3.6:1.6}" fill="var(${band(p.v).c})"/>`).join("");
   return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${pts.length} hours in ${REG[r].name}">${lines}<path d="${path}" fill="none" stroke="var(--pen)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`,
-          from: fmtHour(pts[0].h), to: fmtHour(pts[pts.length-1].h), lo: Math.min(...pts.map(p=>p.v)), hi: Math.max(...pts.map(p=>p.v))};
+          from: fmtHour(pts[0].h) + (pts[0].d!==pts[pts.length-1].d ? " yesterday" : ""), to: fmtHour(pts[pts.length-1].h), lo: Math.min(...pts.map(p=>p.v)), hi: Math.max(...pts.map(p=>p.v))};
 }
 function regionCard(i, r){
   const v=HRS[i].vals[r], b=band(v), t=trendOf(i,r), sp=regionSpark(i,r);
@@ -882,7 +882,7 @@ function updateMap(hi){
     const v=hr.vals[i], b=band(v), col=css(b.c), t=trendOf(hi,i);
     if(AREAS[i]) AREAS[i].setStyle({color:edge, weight:1.5, fillColor:col, fillOpacity: isDark() ? .5 : .42});
     const tr = t ? `<small class="${t.cls}">${t.sym}${t.d ? Math.abs(t.d) : ""}</small>` : "";
-    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})" aria-label="${r.name}: ${v}${t?", "+t.txt:""}. Tap for 12-hour trend.">${v}${tr}</div>`}));
+    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})" aria-label="${r.name}: ${v}${t?", "+t.txt:""}. Tap for 24-hour trend.">${v}${tr}</div>`}));
   });
   showRegionCard();   // keep the region card and outline in step with the time slider
 }
