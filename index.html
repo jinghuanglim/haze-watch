@@ -191,6 +191,23 @@ main{margin-top:clamp(-64px,-5vw,-32px);position:relative}
 .mk{display:grid;place-items:center;min-width:44px;height:34px;padding:0 9px;border-radius:9px;background:var(--surface);border:2.5px solid var(--c);
   box-shadow:0 3px 10px rgba(0,0,0,.25);transform:translate(-50%,-50%);white-space:nowrap;width:max-content;
   font:400 1.15rem/1 var(--f-display);font-variant-numeric:tabular-nums;color:var(--ink);cursor:pointer}
+.mk{grid-auto-flow:column;gap:6px}
+.mk small{font:600 .72rem/1 var(--f-body);color:var(--muted);letter-spacing:.01em}
+.mk small.up{color:var(--b3)} .mk small.down{color:var(--b1)}
+.leaflet-interactive.rg{cursor:pointer;transition:fill-opacity .25s ease}
+.rdetail{position:relative;margin-top:12px;padding:14px 16px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;background:var(--surface);
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:4px 20px;align-items:center;font:400 .86rem/1.4 var(--f-body)}
+.rdetail[hidden]{display:none}
+.rdetail .x{position:absolute;top:6px;right:8px;border:0;background:none;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:4px 8px}
+.rdetail .rd-chart{grid-row:span 2}
+@media (max-width:600px){.rdetail{grid-template-columns:1fr}.rdetail .rd-chart{grid-row:auto}}
+.rp h4{font:400 1.05rem/1.2 var(--f-display);margin:0 0 2px}
+.rp .rv{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
+.rp .rv b{font:400 1.6rem/1 var(--f-display)} .rp .rv span{color:var(--muted);font-size:.8rem}
+.rp .tag{display:inline-block;padding:2px 8px;border-radius:999px;font:600 .74rem/1.4 var(--f-body);background:var(--s);color:var(--ink)}
+.rp svg{display:block;width:100%;height:auto;margin:8px 0 4px}
+.rp .cap{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted)}
+.rp p{margin:8px 0 0;font-size:.8rem;color:var(--muted)}
 .maplegend{background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:8px;padding:8px 10px;
   display:flex;flex-direction:column;gap:5px;font:500 12px/1.2 var(--f-body);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .maplegend b{font:italic 400 12px/1 var(--f-display);color:var(--muted);margin-bottom:2px}
@@ -421,8 +438,9 @@ footer a{color:var(--ink)}
       <div class="when"><span class="today" id="todayTag">Latest</span><span class="when-txt" id="mapDate"></span></div>
       <h2 class="maphead" id="mapTitle">Readings by region</h2>
       <div id="map" class="leaf" role="region" aria-label="Map of Singapore showing PM2.5 by region"></div>
+      <div class="rdetail rp" id="rdetail" aria-live="polite" hidden></div>
       <div class="keyrow" id="keyRow"></div>
-      <p class="maphint">Numbers are PM2.5 (µg/m³). Bigger, stronger circles mean more haze.</p>
+      <p class="maphint">Numbers are PM2.5 (µg/m³). Arrows show the change from the hour before. Tap a region for its last 12 hours.</p>
       <div class="timebar">
         <div class="dayrow">
           <button class="btn ghost icon" id="prevDay" type="button" aria-label="Previous day">‹</button>
@@ -746,11 +764,10 @@ setInterval(()=>{ if(LAST_MOOD>=0 && !window.__timer && !document.hidden) say(LA
 
 /* ---------- map (Leaflet + OneMap, muted to grey) ---------- */
 const HOME=[[1.262,103.64],[1.468,103.975]];
-let LMAP=null, TILE=null, TILE_STYLE="", CIRCLES=[], MARKERS=[];
+let HRS=[];
+let LMAP=null, TILE=null, TILE_STYLE="", AREAS=[], MARKERS=[], MAP_I=-1, OPEN_REG=-1;
 const isDark = () => matchMedia("(prefers-color-scheme: dark)").matches ? document.documentElement.dataset.theme!=="light" : document.documentElement.dataset.theme==="dark";
 const MAP_ATTR = '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> &copy; contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">Singapore Land Authority</a>';
-const circleRadius = v => Math.min(6500, 1500 + v*25);                 // metres: grows with the reading
-const circleFill = v => .16 + Math.min(v,250)/250*.42;                 // stronger fill for higher readings
 function initMap(){
   if(LMAP || !window.L) return;
   LMAP = L.map("map",{zoomControl:true, scrollWheelZoom:false, maxBounds:L.latLngBounds([1.17,103.58],[1.49,104.03]), maxBoundsViscosity:1,
@@ -777,10 +794,59 @@ function initMap(){
     d.innerHTML = `<b>PM2.5 · µg/m³</b>` + BANDS.map((b,i)=>`<span><i style="background:var(${b.c})"></i>${b.label}<em>${RANGES[i]}</em></span>`).join("");
     L.DomEvent.disableClickPropagation(d); return d; };
   lg.addTo(LMAP);
-  REG.forEach(r=>{
-    CIRCLES.push(L.circle([r.lat,r.lon],{radius:3000, weight:1.5}).addTo(LMAP));
-    MARKERS.push(L.marker([r.lat,r.lon],{icon:L.divIcon({className:"",html:"",iconSize:null}), keyboard:false}).addTo(LMAP));
+  // Region areas: Singapore's coastline (URA Master Plan 2019) split around NEA's five reading points.
+  fetch("regions.json").then(r=>r.json()).then(gj=>{
+    REG.forEach((r,i)=>{
+      const f = gj.features.find(f=>f.properties.k===r.k); if(!f) return;
+      AREAS[i] = L.geoJSON(f,{style:{weight:1.5, className:"rg"}}).addTo(LMAP).on("click", ()=>openRegion(i));
+      AREAS[i].bringToBack();
+    });
+    if(MAP_I>=0) updateMap(MAP_I);
+  }).catch(()=>{});
+  REG.forEach((r,i)=>{
+    MARKERS.push(L.marker([r.lat,r.lon],{icon:L.divIcon({className:"",html:"",iconSize:null}), keyboard:true}).addTo(LMAP).on("click", ()=>openRegion(i)));
   });
+}
+// The reading one hour before hour i (only if that hour exists in the data)
+function prevHour(i){ const p=HRS[i-1]; return p && (new Date(HRS[i].t)-new Date(p.t))===36e5 ? p : null; }
+function trendOf(i, r){
+  const p=prevHour(i); if(!p) return null;
+  const d = HRS[i].vals[r] - p.vals[r];
+  return {d, cls: d>=3 ? "up" : d<=-3 ? "down" : "", sym: d>=3 ? "↑" : d<=-3 ? "↓" : "→",
+          txt: d>=3 ? `up ${d} from ${fmtHour(p.h)}` : d<=-3 ? `down ${-d} from ${fmtHour(p.h)}` : `steady since ${fmtHour(p.h)}`};
+}
+// Small 12-hour line chart for one region, with NEA band lines
+function regionSpark(i, r){
+  const from=Math.max(0,i-11), pts=HRS.slice(from,i+1).map(h=>({v:h.vals[r], h:h.h}));
+  const W=220, H=70, top=Math.max(80, ...pts.map(p=>p.v))*1.12, x=k=>20+k*(W-26)/Math.max(1,pts.length-1), y=v=>H-6-(v/top)*(H-14);
+  const lines=[55,150,250].filter(t=>t<top).map(t=>`<line x1="0" x2="${W}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}" stroke="var(--line)" stroke-dasharray="3 3"/><text x="0" y="${(y(t)-2).toFixed(1)}" font-size="8" fill="var(--faint)">${t}</text>`).join("");
+  const path=pts.map((p,k)=>`${k?"L":"M"}${x(k).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
+  const dots=pts.map((p,k)=>`<circle cx="${x(k).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="${k===pts.length-1?3.6:2}" fill="var(${band(p.v).c})"/>`).join("");
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${pts.length} hours in ${REG[r].name}">${lines}<path d="${path}" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" opacity=".8"/>${dots}</svg>`,
+          from: fmtHour(pts[0].h), to: fmtHour(pts[pts.length-1].h), lo: Math.min(...pts.map(p=>p.v)), hi: Math.max(...pts.map(p=>p.v))};
+}
+function regionCard(i, r){
+  const v=HRS[i].vals[r], b=band(v), t=trendOf(i,r), sp=regionSpark(i,r);
+  return `<button class="x" type="button" aria-label="Close">×</button>
+    <div><h4>${REG[r].name}</h4>
+      <div class="rv"><b>${v}</b><span>µg/m³ at ${fmtHour(HRS[i].h)}</span></div>
+      <span class="tag" style="--s:var(${b.soft})">${b.label}</span>${t?` <span style="color:var(--muted);font-size:.8rem">${t.sym} ${t.txt}</span>`:""}
+      <p>${b.advice}</p></div>
+    <div class="rd-chart">${sp.svg}<div class="cap"><span>${sp.from}</span><span>low ${sp.lo} · high ${sp.hi}</span><span>${sp.to}</span></div></div>`;
+}
+function openRegion(r){
+  if(MAP_I<0) return;
+  OPEN_REG = OPEN_REG===r ? -1 : r;          // tap the same region again to close
+  showRegionCard(true);
+}
+function showRegionCard(scroll){
+  const box=$("rdetail");
+  AREAS.forEach((a,k)=>a && a.setStyle(k===OPEN_REG ? {weight:3.5, color:css("--ink")} : {weight:1.5, color:css("--surface")}));
+  if(OPEN_REG<0){ box.hidden=true; return; }
+  box.style.setProperty("--c", `var(${band(HRS[MAP_I].vals[OPEN_REG]).c})`);
+  box.innerHTML = regionCard(MAP_I, OPEN_REG); box.hidden=false;
+  box.querySelector(".x").onclick = ()=>{ OPEN_REG=-1; showRegionCard(); };
+  if(scroll){ const rc=box.getBoundingClientRect(); if(rc.bottom > innerHeight) box.scrollIntoView({block:"nearest", behavior: reduceMotion?"auto":"smooth"}); }
 }
 function setTiles(){
   const style = isDark() ? "Night" : "Grey";
@@ -789,15 +855,16 @@ function setTiles(){
   TILE = L.tileLayer(`https://www.onemap.gov.sg/maps/tiles/${style}/{z}/{x}/{y}.png`,{detectRetina:true, maxZoom:19, minZoom:10, minNativeZoom:11, attribution:MAP_ATTR}).addTo(LMAP);
   TILE_STYLE = style;
 }
-function updateMap(hr){
-  initMap(); if(!LMAP) return; setTiles();
+function updateMap(hi){
+  initMap(); if(!LMAP) return; setTiles(); MAP_I = hi;
+  const hr = HRS[hi], edge = css("--surface");
   REG.forEach((r,i)=>{
-    const v=hr.vals[i], b=band(v), col=css(b.c), tipTxt=`${r.name}: ${v} µg/m³ · ${b.label}`;
-    CIRCLES[i].setStyle({color:col, fillColor:col, fillOpacity:circleFill(v)}).setRadius(circleRadius(v));
-    CIRCLES[i].unbindTooltip().bindTooltip(tipTxt,{direction:"top",sticky:true});
-    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})" aria-label="${r.name}: ${v}">${v}</div>`}));
-    MARKERS[i].unbindTooltip().bindTooltip(tipTxt,{direction:"top",offset:[0,-14]});
+    const v=hr.vals[i], b=band(v), col=css(b.c), t=trendOf(hi,i);
+    if(AREAS[i]) AREAS[i].setStyle({color:edge, weight:1.5, fillColor:col, fillOpacity: isDark() ? .5 : .42});
+    const tr = t ? `<small class="${t.cls}">${t.sym}${t.d ? Math.abs(t.d) : ""}</small>` : "";
+    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})" aria-label="${r.name}: ${v}${t?", "+t.txt:""}. Tap for 12-hour trend.">${v}${tr}</div>`}));
   });
+  showRegionCard();   // keep the region card and outline in step with the time slider
 }
 
 /* ---------- wind control on the map ---------- */
@@ -857,6 +924,7 @@ const hours = DATA.t.map((t,i)=>{
   const vals = REG.map(r => DATA.v[i][idx[r.k]]);
   return {t, d:t.slice(0,10), h:+t.slice(11,13), vals, avg:mean(vals), max:Math.max(...vals)};
 });
+HRS = hours;   // shared with the map code
 const dayMap = new Map();
 hours.forEach(h => { if(!dayMap.has(h.d)) dayMap.set(h.d, []); dayMap.get(h.d).push(h); });
 const days = [...dayMap].map(([d,hs]) => {
@@ -949,7 +1017,7 @@ function renderNow(i){
     + `<span><i class="dt" style="background:var(${b.c})"></i>PM2.5 <b>${hr.max}</b> ${b.label}</span>`;
   showAdvice(CUR_BAND,false);
   setMood(hr.avg, ps ? mean(ps) : null);
-  updateMap(hr);
+  updateMap(i);
   setWind(windFor(i));
 }
 
