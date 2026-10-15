@@ -122,6 +122,34 @@ h2{font-size:clamp(1.35rem,2.6vw,1.7rem);line-height:1.2}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (max-width:600px){.sky-top .hdr-btns{order:-1;width:100%;justify-content:flex-end}.mood{max-width:none}}
 
+/* haze veil: shown on page load while fresh readings are fetched */
+.veil{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;
+  --v-top:#d8cdb2; --v-bot:#efe7d4; --v-smog:184,168,128; --v-sun:#e9a23b; --v-ink:#3d3729;
+  background:linear-gradient(180deg,var(--v-top),var(--v-bot));transition:opacity .7s ease,visibility .7s}
+:root[data-theme="dark"] .veil{--v-top:#1f1c17; --v-bot:#3a3327; --v-smog:120,106,78; --v-sun:#d98a2b; --v-ink:#eee5d0}
+.veil.done{opacity:0;visibility:hidden;pointer-events:none}
+.veil-sun{position:absolute;left:50%;top:38%;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;
+  background:radial-gradient(circle,var(--v-sun) 58%,transparent 72%);opacity:.3;filter:blur(14px);transition:opacity .6s ease,filter .6s ease}
+.veil-smog{position:absolute;width:70vmax;height:42vmax;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(var(--v-smog),.75),rgba(var(--v-smog),0));filter:blur(18px);
+  animation:drift 7s ease-in-out infinite alternate;transition:opacity .6s ease,transform .6s ease}
+.veil-smog.s1{left:-25vmax;top:8%}
+.veil-smog.s2{right:-28vmax;top:28%;animation-duration:9s;animation-direction:alternate-reverse}
+.veil-smog.s3{left:-10vmax;bottom:-12vmax;animation-duration:8s}
+.veil-smog.s4{right:-15vmax;top:-14vmax;animation-duration:10s;animation-direction:alternate-reverse}
+@keyframes drift{from{transform:translateX(-6vmax) scale(1)}to{transform:translateX(8vmax) scale(1.12)}}
+.veil-txt{position:relative;margin-top:22vh;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--v-ink);text-align:center;padding:0 16px}
+.veil-txt b{font:400 clamp(1.3rem,4vw,1.7rem)/1.2 var(--f-display)}
+.veil-txt small{font:400 .9rem/1.3 var(--f-body);opacity:.75}
+.veil-dots i{display:inline-block;width:5px;height:5px;margin:0 3px;border-radius:50%;background:currentColor;opacity:.3;animation:dot 1.2s infinite}
+.veil-dots i:nth-child(2){animation-delay:.2s}.veil-dots i:nth-child(3){animation-delay:.4s}
+@keyframes dot{40%{opacity:1}}
+.veil.clear .veil-sun{opacity:1;filter:blur(0)}
+.veil.clear .veil-smog{opacity:0;transform:scale(1.4)}
+@media (prefers-reduced-motion:reduce){.veil-sun{opacity:.7;filter:blur(4px)}}
+.note{display:block;max-width:44ch;font-size:.84rem;line-height:1.4;padding:7px 11px;border-radius:10px;background:var(--b2-soft);color:var(--ink);border:1px solid color-mix(in srgb,var(--b2) 45%,transparent)}
+.note[hidden]{display:none}
+
 /* loading */
 .pending main > section,.pending footer{display:none}
 .loading{display:none}
@@ -334,6 +362,11 @@ footer a{color:var(--ink)}
 </style>
 </head>
 <body class="pending">
+<div class="veil" id="veil" role="status" aria-live="polite">
+  <div class="veil-sun"></div>
+  <div class="veil-smog s1"></div><div class="veil-smog s2"></div><div class="veil-smog s3"></div><div class="veil-smog s4"></div>
+  <p class="veil-txt"><b>Looking through the haze</b><small id="veilSub">Getting the latest readings</small><span class="veil-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
+</div>
 <div class="stick" id="stick" aria-hidden="true"></div>
 
 <header class="sky gut" id="sky">
@@ -344,6 +377,7 @@ footer a{color:var(--ink)}
         <h1>Singapore Haze Watch</h1>
         <p class="lede">JH's hourly haze diary, since 1 Oct.</p>
         <span class="live" id="live"><i></i><span>Connecting…</span></span>
+        <span class="note" id="note" role="status" hidden></span>
       </div>
       <div class="hdr-btns">
         <button class="chip" id="refreshBtn" type="button" aria-label="Refresh readings now"><span class="spin">↻</span> Refresh</button>
@@ -1097,28 +1131,40 @@ window.__latest=last.t;
 }
 
 /* ---------- data loading ---------- */
-// data.json is refreshed hourly by a GitHub Action. Visitors never call the API.
+// data.json is saved by a GitHub Action (every 15 min, often late). On each visit the page also asks data.gov.sg for newer readings.
 const REFRESH_MIN = 5;   // the page re-reads data.json every 5 min; the GitHub Action updates it every 15 min
-const API = "https://api-open.data.gov.sg/v2/real-time/api/pm25";   // public, no key: used only by the Refresh button
+const API = "https://api-open.data.gov.sg/v2/real-time/api/pm25";   // public, no key: used on page load and by the Refresh button
+class ApiError extends Error{ constructor(msg,limited){ super(msg); this.limited=!!limited; } }
+// fetch with a time limit, and flag rate limiting (HTTP 429) so the page can say so
+async function getJson(url, ms=8000){
+  const ac = new AbortController(), t = setTimeout(()=>ac.abort(), ms);
+  try{
+    const r = await fetch(url,{cache:"no-store",signal:ac.signal});
+    if(r.status===429) throw new ApiError("rate limited", true);
+    if(!r.ok) throw new ApiError("API "+r.status);
+    const j = await r.json();
+    if(j.code!==0 && j.code!==undefined) throw new ApiError(j.errorMsg||"API error", /rate|limit|too many/i.test(j.errorMsg||""));
+    return j;
+  }catch(e){ if(e.name==="AbortError") throw new ApiError("timed out"); throw e; }
+  finally{ clearTimeout(t); }
+}
 const START = "2026-10-01", ORDER = ["north","south","east","west","central"];
 async function fetchLiveDay(d){
   const rows=[]; let tok=null;
   do{
-    const r = await fetch(API+"?date="+d+(tok?"&paginationToken="+encodeURIComponent(tok):""),{cache:"no-store"});
-    if(!r.ok) throw new Error("API "+r.status);
-    const j = await r.json(); if(j.code!==0) throw new Error(j.errorMsg||"API error");
+    const j = await getJson(API+"?date="+d+(tok?"&paginationToken="+encodeURIComponent(tok):""));
     (j.data.items||[]).forEach(it=>{ const v=ORDER.map(k=>it.readings.pm25_one_hourly[k]); if(v.every(x=>typeof x==="number")) rows.push([it.timestamp,v]); });
     tok = j.data.paginationToken;
   }while(tok);
   return rows;
 }
 async function fetchLivePsi(d){
-  const r = await fetch("https://api-open.data.gov.sg/v2/real-time/api/psi?date="+d,{cache:"no-store"}); const j = await r.json();
+  const j = await getJson("https://api-open.data.gov.sg/v2/real-time/api/psi?date="+d);
   return (j.data?.items||[]).map(it=>{ const p=it.readings.psi_twenty_four_hourly||{}; return [it.timestamp, ORDER.map(k=>p[k])]; }).filter(x=>x[1].every(v=>typeof v==="number"));
 }
 async function liveWindAt(ts){
   const q="?date="+encodeURIComponent(ts.slice(0,19));
-  const [a,b] = await Promise.all(["direction","speed"].map(k=>fetch(`https://api-open.data.gov.sg/v2/real-time/api/wind-${k}${q}`,{cache:"no-store"}).then(r=>r.json())));
+  const [a,b] = await Promise.all(["direction","speed"].map(k=>getJson(`https://api-open.data.gov.sg/v2/real-time/api/wind-${k}${q}`)));
   const dr=a.data?.readings?.[0]?.data||[], sr=b.data?.readings?.[0]?.data||[];
   const sp=Object.fromEntries(sr.map(x=>[x.stationId,x.value])); const both=dr.filter(x=>typeof x.value==="number" && typeof sp[x.stationId]==="number");
   if(!both.length) return null;
@@ -1133,6 +1179,25 @@ function mergeRows(data, rows){
 const clock = d => new Intl.DateTimeFormat("en-SG",{timeZone:"Asia/Singapore",hour:"numeric",minute:"2-digit"}).format(d);
 function setLive(ok,msg){ const l=$("live"); l.classList.toggle("stale",!ok); l.querySelector("span").textContent=msg; }
 let first = true;
+// Haze veil: stays at least ~1.2s so it reads as an animation, then the haze "clears" and fades away.
+const VEIL_START = performance.now();
+setTimeout(()=>hideVeil(true), 10000);   // never block the page for long, even if the API hangs
+function hideVeil(now){
+  const v = $("veil"); if(!v || v.classList.contains("done")) return;
+  const wait = now ? 0 : Math.max(0, 1200 - (performance.now()-VEIL_START));
+  setTimeout(()=>{ v.classList.add("clear"); setTimeout(()=>v.classList.add("done"), reduceMotion?0:550); }, wait);
+}
+// Message when we could not get fresh readings and are showing the saved file instead
+function showNote(err, latest){
+  const n = $("note");
+  const fresh = (Date.now() - new Date(latest).getTime()) < 75*60*1000;
+  if(!err || fresh){ n.hidden = true; return; }
+  const when = fmtHour(+latest.slice(11,13)) + (latest.slice(0,10)===sgDate() ? "" : " on "+latest.slice(8,10)+"/"+latest.slice(5,7));
+  n.textContent = err.limited
+    ? `data.gov.sg is busy right now (too many requests). Showing saved readings up to ${when}. Try Refresh in a minute.`
+    : `Couldn't reach data.gov.sg just now. Showing saved readings up to ${when}. Try Refresh in a minute.`;
+  n.hidden = false;
+}
 async function load(manual){
   try{
     const r = await fetch("data.json?ts="+Date.now(), {cache:"no-store"});
@@ -1141,7 +1206,8 @@ async function load(manual){
     // Top up from the API when asked, or when the saved file is behind (e.g. GitHub's scheduler running late).
     const lastSaved = data.t[data.t.length-1];
     const behind = (Date.now() - new Date(lastSaved).getTime()) > 75*60*1000;
-    if(manual || behind){
+    let liveErr = null;
+    if(first || manual || behind){
       try{
         const today=sgDate(), from=lastSaved.slice(0,10);
         const ds = from<today ? [from,today] : [today];     // also fill the gap from the last saved day
@@ -1152,20 +1218,23 @@ async function load(manual){
         data.wind = w;
         try{ const pr = await fetchLivePsi(today), p = data.psi || {t:[],v:[]}, pm = new Map(p.t.map((t,i)=>[t,p.v[i]]));
           pr.forEach(([t,v])=>pm.set(t,v)); const pt=[...pm.keys()].sort(); data.psi = {t:pt, v:pt.map(k=>pm.get(k))}; }catch(e){}
-      }catch(e){ /* keep data.json as is */ }
+      }catch(e){ liveErr = e; /* keep data.json as is */ }
       if(manual && window.__timer){ clearInterval(window.__timer); window.__timer=null; }
     }
     if(!data.t || !data.t.length) throw new Error("The data file is empty.");
     const latest = data.t[data.t.length-1];
+    if(first || manual || behind) showNote(liveErr, latest);
     if(first || manual || (latest !== window.__latest && !window.__timer)) boot(data);
     document.body.classList.remove("pending");
     if(first){ if(LMAP){ LMAP.invalidateSize(); LMAP.fitBounds(HOME); } window.__charts && window.__charts(); }
+    if(first) hideVeil();
     first=false;
     const ageH = (Date.now() - new Date(latest).getTime())/36e5;
     if(ageH > 3) setLive(false, `Readings are ${Math.floor(ageH)}h old · checked ${clock(new Date())}`);
     else setLive(true, `Latest reading ${fmtHour(+latest.slice(11,13))} · checked ${clock(new Date())}`);
+    if(!$("note").hidden) $("live").classList.add("stale");   // amber dot while showing saved data
   }catch(err){
-    if(first){ $("loadMsg").textContent = err.message+" Please try again."; $("retry").hidden=false; }
+    if(first){ hideVeil(true); $("loadMsg").textContent = err.message+" Please try again."; $("retry").hidden=false; }
     else setLive(false, `Couldn't refresh at ${clock(new Date())} · showing last data`);
   }
 }
