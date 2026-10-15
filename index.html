@@ -158,7 +158,7 @@ main{margin-top:clamp(-64px,-5vw,-32px);position:relative}
 .keyrow i{width:9px;height:9px;border-radius:50%}
 @media (max-width:600px){.maplegend{display:none}.keyrow{display:flex}}
 .maphint{font-size:.8rem;color:var(--faint);margin-top:8px}
-.when{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:0}
+.when{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 .today{font:600 .78rem/1 var(--f-body);padding:5px 9px;border-radius:5px;background:var(--tint-soft);color:var(--ink)}
 .today.past{background:var(--line)}
 .when-txt{font-size:.9rem;color:var(--muted)}
@@ -216,9 +216,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .advice b{color:var(--ink);font-weight:600}
 
 /* numbers: no boxes, just rules */
-.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;padding-block:6px 4px!important}
+.facts{display:flex;flex-direction:column;gap:6px}
+.facts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}
 .fact{border-top:1px solid var(--line);padding:12px 0 14px;}
-.fact:nth-child(-n+2){border-top:0}
+.facts-grid .fact:nth-child(-n+2){border-top:0}
 .fact{display:flex;flex-direction:column;gap:3px;min-width:0}
 .fact .k{font-size:.82rem;color:var(--muted)}
 .fact .v{font:400 1.75rem/1.1 var(--f-display);font-variant-numeric:tabular-nums}
@@ -360,6 +361,7 @@ footer a{color:var(--ink)}
 
   <section class="status">
     <div class="mapbox card">
+      <span class="kicker">Around the island</span>
       <div class="when"><span class="today" id="todayTag">Latest</span><span class="when-txt" id="mapDate"></span></div>
       <h2 class="maphead" id="mapTitle">Readings by region</h2>
       <div id="map" class="leaf" role="region" aria-label="Map of Singapore showing PM2.5 by region"></div>
@@ -389,6 +391,7 @@ footer a{color:var(--ink)}
 
     <div class="side">
       <div class="now card">
+        <span class="kicker">How bad is it?</span>
         <div class="verdict" id="verdict"></div>
         <h2 id="nowHead">Worst spot right now</h2>
         <div class="big"><span class="n" id="nowNum">–</span><span class="unit">µg/m³ in <span id="nowRegion"></span></span></div>
@@ -396,7 +399,7 @@ footer a{color:var(--ink)}
         <div class="psi" id="psiLine" hidden></div>
         <p class="advice" id="advice"></p>
       </div>
-      <div class="facts card" id="facts"></div>
+      <div class="facts card"><span class="kicker facts-k">By the numbers</span><div class="facts-grid" id="facts"></div></div>
     </div>
   </section>
 
