@@ -134,7 +134,7 @@ main{margin-top:clamp(-64px,-5vw,-32px);position:relative}
 @media (max-width:820px){
   .status{grid-template-columns:minmax(0,1fr)}
   .side{display:contents}
-  .now{order:-1}.mapbox{order:0}.facts{order:1}
+  .mapbox{order:-1}.now{order:0}.facts{order:1}
 }
 .mapbox{min-width:0}
 .mapbox.card .leaf{box-shadow:none;border:1px solid var(--line)}
@@ -282,11 +282,21 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 
 /* ---------- diary sections ---------- */
 .sect,.card{min-width:0;position:relative;background:var(--card);border-radius:14px;padding:clamp(18px,3vw,30px);box-shadow:var(--card-shadow)}
-.sect::before,.card::before{content:"";position:absolute;top:-9px;left:clamp(18px,4vw,34px);width:62px;height:18px;border-radius:2px;
-  background:color-mix(in srgb,var(--tint) 42%,transparent);transform:rotate(-4deg);opacity:.9;
-  -webkit-mask:linear-gradient(90deg,transparent 0 2px,#000 2px calc(100% - 2px),transparent calc(100% - 2px));mask:linear-gradient(90deg,transparent 0 2px,#000 2px calc(100% - 2px),transparent calc(100% - 2px))}
-main section.sect:nth-of-type(odd)::before{transform:rotate(3deg);left:auto;right:clamp(18px,4vw,34px)}
-.facts.card::before{left:auto;right:28px;transform:rotate(5deg);width:48px}
+.sect::before,.card::before{content:"";position:absolute;z-index:2;top:-10px;left:clamp(18px,4vw,34px);width:74px;height:22px;pointer-events:none;
+  --t1:color-mix(in srgb,var(--tint) 62%,transparent); --t2:color-mix(in srgb,var(--tint) 40%,transparent);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,0) 45%,rgba(0,0,0,.07)),
+    repeating-linear-gradient(135deg,var(--t1) 0 5px,var(--t2) 5px 10px);
+  opacity:.82;transform:rotate(-4deg);
+  clip-path:polygon(4% 0,96% 0,100% 11%,95.5% 23%,100% 35%,96% 48%,100% 60%,95.5% 73%,100% 86%,96% 100%,4% 100%,0 87%,4.5% 74%,0 61%,4% 49%,0 36%,4.5% 24%,0 12%)}
+:root[data-theme="dark"] .sect::before,:root[data-theme="dark"] .card::before{opacity:.72;filter:saturate(1.15) brightness(1.15)}
+main section.sect:nth-of-type(odd)::before{transform:rotate(3deg);left:auto;right:clamp(18px,4vw,34px);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,0) 45%,rgba(0,0,0,.07)),
+    radial-gradient(circle at 5px 5px,rgba(255,255,255,.62) 1.6px,transparent 2.2px) 0 0/11px 11px,
+    var(--t2)}
+.facts.card::before{left:auto;right:28px;transform:rotate(5deg);width:56px}
+.mapbox.card::before{transform:rotate(-6deg);width:66px}
 .sec-head{display:flex;flex-direction:column;gap:6px;margin-bottom:22px;max-width:none}
 .chart{position:relative}
 .chart svg{display:block;width:100%;height:auto;overflow:visible}
@@ -1154,7 +1164,7 @@ new MutationObserver(()=>window.__draw&&window.__draw()).observe(document.docume
 let rz, lastW=innerWidth;
 addEventListener("resize",()=>{ if(innerWidth===lastW) return; lastW=innerWidth; clearTimeout(rz); rz=setTimeout(()=>window.__charts&&window.__charts(),150); });
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>window.__font&&window.__font());
-try{ new IntersectionObserver(([e])=>$("stick").classList.toggle("show", !e.isIntersecting && e.boundingClientRect.top<0)).observe(document.querySelector(".now")); }catch(e){}
+try{ new IntersectionObserver(([e])=>$("stick").classList.toggle("show", !e.isIntersecting && e.boundingClientRect.top<0)).observe(document.querySelector(".sky")); }catch(e){}
 setInterval(load, REFRESH_MIN*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !first) load(); });
 load();
