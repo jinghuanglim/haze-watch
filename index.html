@@ -143,9 +143,9 @@ main{margin-top:clamp(-56px,-4vw,-28px);position:relative}
 .leaflet-control-attribution{font-size:10px!important;background:color-mix(in srgb,var(--surface) 85%,transparent)!important;color:var(--muted)!important}
 .leaflet-control-attribution a{color:var(--ink)!important}
 .leaflet-control-zoom a{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}
-.mk{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:6px;background:var(--surface);
-  box-shadow:0 2px 8px rgba(0,0,0,.22);transform:translate(-50%,-50%);white-space:nowrap;width:max-content;font:600 11.5px/1 var(--f-body);color:var(--ink)}
-.mk i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.mk{display:grid;place-items:center;min-width:44px;height:34px;padding:0 9px;border-radius:9px;background:var(--surface);border:2.5px solid var(--c);
+  box-shadow:0 3px 10px rgba(0,0,0,.25);transform:translate(-50%,-50%);white-space:nowrap;width:max-content;
+  font:400 1.15rem/1 var(--f-display);font-variant-numeric:tabular-nums;color:var(--ink);cursor:pointer}
 .maplegend{background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:8px;padding:8px 10px;
   display:flex;flex-direction:column;gap:5px;font:500 12px/1.2 var(--f-body);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .maplegend b{font:italic 400 12px/1 var(--f-display);color:var(--muted);margin-bottom:2px}
@@ -211,11 +211,6 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .gauge .lbls span{position:absolute;transform:translateX(-50%)}
 .gauge .lbls span:first-child{transform:none}
 .ghint{font-size:.78rem;color:var(--faint)}
-.regions{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
-.regions li{display:grid;grid-template-columns:5.5em 1fr 3em;align-items:center;gap:10px;font-size:.92rem}
-.regions .bar{height:8px;border-radius:4px;background:color-mix(in srgb,var(--ink) 10%,transparent);position:relative;overflow:hidden}
-.regions .bar span{position:absolute;inset:0 auto 0 0;border-radius:4px;transition:width .25s}
-.regions .val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .advice{font-size:.9rem;color:var(--muted);border-top:1px solid color-mix(in srgb,var(--ink) 12%,transparent);padding-top:12px}
 .advice b{color:var(--ink);font-weight:600}
 
@@ -350,7 +345,7 @@ footer a{color:var(--ink)}
       <h2 class="maphead" id="mapTitle">Readings by region</h2>
       <div id="map" class="leaf" role="region" aria-label="Map of Singapore showing PM2.5 by region"></div>
       <div class="keyrow" id="keyRow"></div>
-      <p class="maphint">Bigger, stronger circles mean more haze. The arrow shows where the wind is blowing.</p>
+      <p class="maphint">Numbers are PM2.5 (µg/m³). Bigger, stronger circles mean more haze. Tap a number for the region name.</p>
       <div class="timebar">
         <div class="dayrow">
           <button class="btn ghost icon" id="prevDay" type="button" aria-label="Previous day">‹</button>
@@ -380,7 +375,6 @@ footer a{color:var(--ink)}
         <div class="big"><span class="n" id="nowNum">–</span><span class="unit">µg/m³ in <span id="nowRegion"></span></span></div>
         <div class="gauge" id="gauge" role="group" aria-label="PM2.5 bands. Choose a band to see its advice."></div>
         <div class="psi" id="psiLine" hidden></div>
-        <ul class="regions" id="regionList"></ul>
         <p class="advice" id="advice"></p>
       </div>
       <div class="facts" id="facts"></div>
@@ -715,7 +709,7 @@ function updateMap(hr){
     const v=hr.vals[i], b=band(v), col=css(b.c), tipTxt=`${r.name}: ${v} µg/m³ · ${b.label}`;
     CIRCLES[i].setStyle({color:col, fillColor:col, fillOpacity:circleFill(v)}).setRadius(circleRadius(v));
     CIRCLES[i].unbindTooltip().bindTooltip(tipTxt,{direction:"top",sticky:true});
-    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})"><i></i>${r.name}</div>`}));
+    MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})" aria-label="${r.name}: ${v}">${v}</div>`}));
     MARKERS[i].unbindTooltip().bindTooltip(tipTxt,{direction:"top",offset:[0,-14]});
   });
 }
@@ -847,9 +841,6 @@ function renderNow(i){
   $("nowNum").textContent = hr.max;
   $("nowRegion").textContent = REG[wi].name;
   setGauge(hr.max);
-  const scale = Math.max(160, ...hr.vals);
-  $("regionList").innerHTML = REG.map((r,k)=>({r,v:hr.vals[k]})).sort((a,b)=>b.v-a.v).map(({r,v})=>
-    `<li><span>${r.name}</span><span class="bar"><span style="width:${v/scale*100}%;background:var(${band(v).c})"></span></span><span class="val">${v}</span></li>`).join("");
   CUR_BAND = BANDS.indexOf(b);
   // 24-hr PSI: island range + worst region; the advice follows whichever scale is stricter
   const ps = psiFor(i), line = $("psiLine");
