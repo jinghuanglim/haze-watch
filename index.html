@@ -234,10 +234,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .psi .info[aria-expanded="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .psinote{flex-basis:100%;font-size:.8rem;color:var(--muted);line-height:1.45}
 /* footer sign-off */
-.sign{font:700 1.5rem/1.2 var(--f-hand);color:var(--pen);transform:rotate(-1.2deg);transform-origin:left;margin-bottom:4px}
-.why{font-size:.92rem;color:var(--ink);max-width:62ch}
-.disclaim{margin:6px 0 4px;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
-.disclaim li{position:relative;padding-left:18px}
+.sign{font:700 1.08rem/1.2 var(--f-hand);color:var(--pen);transform:rotate(-1.2deg);transform-origin:left;margin-bottom:2px}
+.why{font-size:.8rem;color:var(--muted)}
+.disclaim{margin:2px 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:2px 16px}
+.disclaim li{position:relative;padding-left:14px}
 .disclaim li::before{content:"✳";position:absolute;left:0;color:var(--faint)}
 .nowrap{white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
 @media (max-width:600px){.windbox{padding:5px 9px 5px 5px;gap:6px}.windbox svg{width:26px;height:26px}.windbox b{font-size:.76rem}.windbox span{font-size:.7rem}}
@@ -328,7 +328,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .hm .sep{grid-column:1/-1;height:4px}
 .rule{height:1px;background:var(--line);border:0;margin:0}
 
-footer{font-size:.82rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;padding-top:clamp(12px,2vw,20px)}
+footer{font-size:.74rem;line-height:1.45;color:var(--faint);display:flex;flex-direction:column;gap:4px;padding-top:clamp(12px,2vw,20px)}
 footer a{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -451,17 +451,14 @@ footer a{color:var(--ink)}
   </section>
 
   <footer>
-    <p class="sign">Made by JH, mostly at 12am 🌫️</p>
-    <p class="why">Why I made this: I wanted to know if I could go for a run without checking three different apps. Now I check one page, and it judges me.</p>
+    <p class="sign">Made by JH, at 12am 🌫️</p>
+    <p class="why">Built so I'd stop checking three apps before a run.</p>
     <ul class="disclaim">
-      <li>Not medical advice. I'm a haze enthusiast, not a doctor.</li>
-      <li>Readings come from NEA. The puns are 100% my own fault.</li>
-      <li>No haze was harmed in the making of this page. Several lungs were.</li>
-      <li>If this page says Normal but you smell smoke, trust your nose over my code.</li>
-      <li>Updates every 15 minutes. JH updates whenever he remembers.</li>
+      <li>Not medical advice. Just a guy with a mask.</li>
+      <li>Data by NEA. Puns by me, sorry.</li>
+      <li>Smell smoke but it says Normal? Trust your nose.</li>
     </ul>
-    <span id="foot"></span>
-    <span>Source: NEA readings via <a href="https://data.gov.sg/datasets/d_e1058d6974c877257e32048ab128ad83/view" target="_blank" rel="noopener">data.gov.sg</a>. Health guidance: <a href="https://www.haze.gov.sg" target="_blank" rel="noopener">haze.gov.sg</a>.</span>
+    <span class="src"><span id="foot"></span> · Data: <a href="https://data.gov.sg/datasets/d_e1058d6974c877257e32048ab128ad83/view" target="_blank" rel="noopener">data.gov.sg</a> · Advice: <a href="https://www.haze.gov.sg" target="_blank" rel="noopener">haze.gov.sg</a></span>
   </footer>
 </div>
 </main>
@@ -862,7 +859,7 @@ $("diHead").textContent = `Worst around ${fmtHour(peakHr)}, best around ${fmtHou
   lowHr>=5 && lowHr<=10 ? `Plan runs before ${fmtHour(Math.min(lowHr+2,11))}.` :
   lowHr>=17 && lowHr<=21 ? "Evenings are your best bet." :
   (lowHr>=22 || lowHr<=4) ? "Late nights are your best bet." : `Plan outdoor time around ${fmtHour(lowHr)}.`);
-$("foot").textContent = `${hours.length} hourly readings since ${fmtDay(days[0].d)}.`;
+$("foot").textContent = `${hours.length} hourly readings since ${fmtDay(days[0].d)}`;
 
 /* ---------- now panel + map ---------- */
 const today = sgDate(), yday = (()=>{ const t=new Date(today+"T00:00:00Z"); t.setUTCDate(t.getUTCDate()-1); return t.toISOString().slice(0,10); })();
