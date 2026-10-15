@@ -1135,8 +1135,13 @@ window.__latest=last.t;
 const REFRESH_MIN = 5;   // the page re-reads data.json every 5 min; the GitHub Action updates it every 15 min
 const API = "https://api-open.data.gov.sg/v2/real-time/api/pm25";   // public, no key: used on page load and by the Refresh button
 class ApiError extends Error{ constructor(msg,limited){ super(msg); this.limited=!!limited; } }
-// fetch with a time limit, and flag rate limiting (HTTP 429) so the page can say so
+// Readings only change hourly, so reuse an API answer for 2 minutes. Quick reloads then make no calls,
+// which keeps us under data.gov.sg's free rate limit. The Refresh button skips this cache.
+const CACHE_MS = 2*60*1000; let skipCache = false;
+try{ for(const k of Object.keys(localStorage)) if(k.startsWith("api:")){ const c=JSON.parse(localStorage.getItem(k)); if(!c || Date.now()-c.at > 10*60*1000) localStorage.removeItem(k); } }catch(e){}
+// fetch with a time limit, and flag rate limiting so the page can say so
 async function getJson(url, ms=8000){
+  if(!skipCache){ try{ const c = JSON.parse(localStorage.getItem("api:"+url)); if(c && Date.now()-c.at < CACHE_MS) return c.j; }catch(e){} }
   const ac = new AbortController(), t = setTimeout(()=>ac.abort(), ms);
   try{
     const r = await fetch(url,{cache:"no-store",signal:ac.signal});
@@ -1144,8 +1149,15 @@ async function getJson(url, ms=8000){
     if(!r.ok) throw new ApiError("API "+r.status);
     const j = await r.json();
     if(j.code!==0 && j.code!==undefined) throw new ApiError(j.errorMsg||"API error", /rate|limit|too many/i.test(j.errorMsg||""));
+    try{ localStorage.setItem("api:"+url, JSON.stringify({at:Date.now(), j})); }catch(e){}
     return j;
-  }catch(e){ if(e.name==="AbortError") throw new ApiError("timed out"); throw e; }
+  }catch(e){
+    if(e.name==="AbortError") throw new ApiError("timed out");
+    // data.gov.sg's "too many requests" reply has no CORS header, so the browser only reports a network error.
+    // If the device is online, that is almost always the rate limit.
+    if(e instanceof TypeError) throw new ApiError(navigator.onLine===false ? "offline" : "blocked", navigator.onLine!==false);
+    throw e;
+  }
   finally{ clearTimeout(t); }
 }
 const START = "2026-10-01", ORDER = ["north","south","east","west","central"];
@@ -1195,6 +1207,7 @@ function showNote(err, latest){
   const when = fmtHour(+latest.slice(11,13)) + (latest.slice(0,10)===sgDate() ? "" : " on "+latest.slice(8,10)+"/"+latest.slice(5,7));
   n.textContent = err.limited
     ? `data.gov.sg is busy right now (too many requests). Showing saved readings up to ${when}. Try Refresh in a minute.`
+    : err.message==="offline" ? `You seem to be offline. Showing saved readings up to ${when}.`
     : `Couldn't reach data.gov.sg just now. Showing saved readings up to ${when}. Try Refresh in a minute.`;
   n.hidden = false;
 }
@@ -1206,14 +1219,14 @@ async function load(manual){
     // Top up from the API when asked, or when the saved file is behind (e.g. GitHub's scheduler running late).
     const lastSaved = data.t[data.t.length-1];
     const behind = (Date.now() - new Date(lastSaved).getTime()) > 75*60*1000;
-    let liveErr = null;
+    let liveErr = null; skipCache = !!manual;
     if(first || manual || behind){
       try{
         const today=sgDate(), from=lastSaved.slice(0,10);
         const ds = from<today ? [from,today] : [today];     // also fill the gap from the last saved day
         for(const d of ds) data = mergeRows(data, await fetchLiveDay(d));
         const w = data.wind || {t:[],d:[],s:[]}, have = new Set(w.t);
-        const need = data.t.filter(t=>!have.has(t)).slice(-4);           // newest few hours only
+        const need = data.t.filter(t=>!have.has(t)).slice(-1);           // newest hour only, to save API calls
         for(const t of need){ const r = await liveWindAt(t).catch(()=>null); if(r){ w.t.push(t); w.d.push(r[0]); w.s.push(r[1]); } }
         data.wind = w;
         try{ const pr = await fetchLivePsi(today), p = data.psi || {t:[],v:[]}, pm = new Map(p.t.map((t,i)=>[t,p.v[i]]));
