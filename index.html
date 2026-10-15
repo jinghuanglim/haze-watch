@@ -195,12 +195,30 @@ main{margin-top:clamp(-64px,-5vw,-32px);position:relative}
 .mk small{font:600 .72rem/1 var(--f-body);color:var(--muted);letter-spacing:.01em}
 .mk small.up{color:var(--b3)} .mk small.down{color:var(--b1)}
 .leaflet-interactive.rg{cursor:pointer;transition:fill-opacity .25s ease}
-.rdetail{position:relative;margin-top:12px;padding:14px 16px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;background:var(--surface);
-  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:4px 20px;align-items:center;font:400 .86rem/1.4 var(--f-body)}
+/* region slip: a ruled diary note taped under the map */
+.rdetail{position:relative;margin:22px 4px 4px;padding:18px 20px 16px;border-radius:3px;transform:rotate(-.5deg);
+  background:repeating-linear-gradient(180deg,transparent 0 25px,var(--rule) 25px 26px) 0 12px/100% 26px,var(--paper);
+  box-shadow:0 1px 2px rgba(60,50,30,.08),0 8px 20px rgba(60,50,30,.10);
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:4px 26px;align-items:start;font:400 .9rem/26px var(--f-body);color:var(--ink)}
+:root[data-theme="dark"] .rdetail{box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.rdetail::before{content:"";position:absolute;top:-11px;right:42px;width:62px;height:20px;transform:rotate(5deg);opacity:.8;
+  --t1:color-mix(in srgb,var(--c) 55%,transparent); --t2:color-mix(in srgb,var(--c) 32%,transparent);
+  background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,0) 45%,rgba(0,0,0,.06)),repeating-linear-gradient(135deg,var(--t1) 0 5px,var(--t2) 5px 10px);
+  clip-path:polygon(4% 0,96% 0,100% 14%,95.5% 30%,100% 46%,96% 62%,100% 78%,96% 100%,4% 100%,0 84%,4.5% 68%,0 52%,4% 36%,0 20%)}
 .rdetail[hidden]{display:none}
-.rdetail .x{position:absolute;top:6px;right:8px;border:0;background:none;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:4px 8px}
-.rdetail .rd-chart{grid-row:span 2}
-@media (max-width:600px){.rdetail{grid-template-columns:1fr}.rdetail .rd-chart{grid-row:auto}}
+.rdetail .x{position:absolute;top:2px;right:6px;border:0;background:none;color:var(--muted);font:400 1.5rem/1 var(--f-hand);cursor:pointer;padding:6px 8px}
+.rdetail .rd-who{font:700 1.1rem/26px var(--f-hand);color:var(--pen)}
+.rdetail .rd-num{display:flex;align-items:baseline;gap:8px;line-height:1;margin:4px 0 6px}
+.rdetail .rd-num b{font:400 2.4rem/1 var(--f-display);font-variant-numeric:tabular-nums}
+.rdetail .rd-num span{font-size:.8rem;color:var(--muted)}
+.rdetail .rd-band{font:700 1.05rem/26px var(--f-hand);padding:0 3px;
+  background:linear-gradient(transparent 52%, color-mix(in srgb,var(--c) 38%,transparent) 52%, color-mix(in srgb,var(--c) 38%,transparent) 88%, transparent 88%)}
+.rdetail .rd-trend{font:400 1rem/26px var(--f-hand);color:var(--pen);margin-left:8px;white-space:nowrap}
+.rdetail .rd-adv{margin:4px 0 0;color:var(--muted);font-size:.86rem;line-height:26px}
+.rdetail .rd-chart{grid-row:span 2;min-width:0}
+.rdetail .rd-chart svg{display:block;width:100%;height:auto}
+.rdetail .rd-cap{display:flex;justify-content:space-between;font:400 .95rem/22px var(--f-hand);color:var(--muted)}
+@media (max-width:600px){.rdetail{grid-template-columns:1fr}.rdetail .rd-chart{grid-row:auto;margin-top:4px}}
 .rp h4{font:400 1.05rem/1.2 var(--f-display);margin:0 0 2px}
 .rp .rv{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
 .rp .rv b{font:400 1.6rem/1 var(--f-display)} .rp .rv span{color:var(--muted);font-size:.8rem}
@@ -819,20 +837,22 @@ function trendOf(i, r){
 function regionSpark(i, r){
   const from=Math.max(0,i-11), pts=HRS.slice(from,i+1).map(h=>({v:h.vals[r], h:h.h}));
   const W=220, H=70, top=Math.max(80, ...pts.map(p=>p.v))*1.12, x=k=>20+k*(W-26)/Math.max(1,pts.length-1), y=v=>H-6-(v/top)*(H-14);
-  const lines=[55,150,250].filter(t=>t<top).map(t=>`<line x1="0" x2="${W}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}" stroke="var(--line)" stroke-dasharray="3 3"/><text x="0" y="${(y(t)-2).toFixed(1)}" font-size="8" fill="var(--faint)">${t}</text>`).join("");
+  const lines=[55,150,250].filter(t=>t<top).map(t=>`<line x1="0" x2="${W}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}" stroke="var(--faint)" stroke-opacity=".45" stroke-dasharray="2 4"/><text x="0" y="${(y(t)-2).toFixed(1)}" font-size="10" font-family="var(--f-hand)" fill="var(--faint)">${t}</text>`).join("");
   const path=pts.map((p,k)=>`${k?"L":"M"}${x(k).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
   const dots=pts.map((p,k)=>`<circle cx="${x(k).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="${k===pts.length-1?3.6:2}" fill="var(${band(p.v).c})"/>`).join("");
-  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${pts.length} hours in ${REG[r].name}">${lines}<path d="${path}" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" opacity=".8"/>${dots}</svg>`,
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${pts.length} hours in ${REG[r].name}">${lines}<path d="${path}" fill="none" stroke="var(--pen)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`,
           from: fmtHour(pts[0].h), to: fmtHour(pts[pts.length-1].h), lo: Math.min(...pts.map(p=>p.v)), hi: Math.max(...pts.map(p=>p.v))};
 }
 function regionCard(i, r){
   const v=HRS[i].vals[r], b=band(v), t=trendOf(i,r), sp=regionSpark(i,r);
   return `<button class="x" type="button" aria-label="Close">×</button>
-    <div><h4>${REG[r].name}</h4>
-      <div class="rv"><b>${v}</b><span>µg/m³ at ${fmtHour(HRS[i].h)}</span></div>
-      <span class="tag" style="--s:var(${b.soft})">${b.label}</span>${t?` <span style="color:var(--muted);font-size:.8rem">${t.sym} ${t.txt}</span>`:""}
-      <p>${b.advice}</p></div>
-    <div class="rd-chart">${sp.svg}<div class="cap"><span>${sp.from}</span><span>low ${sp.lo} · high ${sp.hi}</span><span>${sp.to}</span></div></div>`;
+    <div>
+      <div class="rd-who">${REG[r].name}, at ${fmtHour(HRS[i].h)}</div>
+      <div class="rd-num"><b>${v}</b><span>µg/m³</span></div>
+      <div><span class="rd-band">${b.label}</span>${t?`<span class="rd-trend">${t.sym} ${t.txt}</span>`:""}</div>
+      <p class="rd-adv">${b.advice}</p>
+    </div>
+    <div class="rd-chart">${sp.svg}<div class="rd-cap"><span>${sp.from}</span><span>low ${sp.lo}, high ${sp.hi}</span><span>${sp.to}</span></div></div>`;
 }
 function openRegion(r){
   if(MAP_I<0) return;
