@@ -321,7 +321,6 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .disclaim li{position:relative;padding-left:14px}
 .disclaim li::before{content:"✳";position:absolute;left:0;color:var(--faint)}
 .nowrap{white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
-@media (max-width:600px){.windbox{padding:5px 9px 5px 5px;gap:6px}.windbox svg{width:26px;height:26px}.windbox b{font-size:.76rem}.windbox span{font-size:.7rem}}
 /* verdict */
 .verdict{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .vd{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--tint-soft) 55%,var(--card));min-width:0}
@@ -363,6 +362,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .windbox .wa{transition:transform .5s ease;transform-origin:20px 20px}
 .windbox b{display:block;font:600 .86rem/1.15 var(--f-body)}
 .windbox span{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+/* phones: smaller wind box (must come after the base rules above) */
+@media (max-width:600px){.windbox{padding:5px 9px 5px 5px;gap:6px}.windbox svg{width:26px;height:26px}.windbox b{font-size:.76rem}.windbox span{font-size:.7rem}}
 /* grid toggle */
 .gridtabs{display:inline-flex;gap:16px;margin-bottom:14px}
 .gridtabs button{font:600 .9rem/1 var(--f-body);border:0;background:transparent;color:var(--faint);padding:6px 0;cursor:pointer;border-bottom:2px solid transparent}
@@ -872,7 +873,10 @@ function fitHome(){ if(!LMAP) return; LMAP.fitBounds(HOME); keepLabelsIn(); }
 // Narrow maps: the East/West labels can hang past the map edge. Slide any such label back inside
 // (only when its point is on screen, so panning the map still works as expected).
 function keepLabelsIn(){
-  if(!LMAP) return; const box=LMAP.getContainer().getBoundingClientRect(), gap=6;
+  if(!LMAP) return;
+  // Phones: the wind box sits bottom-left; lift it above the map credits, which wrap across the bottom on narrow maps.
+  const wb=$("windbox"), at=LMAP.getContainer().querySelector(".leaflet-control-attribution");
+  if(wb) wb.style.marginBottom = (wb.parentElement.classList.contains("leaflet-bottom") && at) ? (at.offsetHeight+6)+"px" : ""; const box=LMAP.getContainer().getBoundingClientRect(), gap=6;
   LMAP.getContainer().classList.toggle("tight", box.width < 300);   // very small phones: smaller labels so three fit side by side
   MARKERS.forEach(mk=>{ const inner=mk.getElement() && mk.getElement().firstElementChild; if(!inner) return;
     inner.style.translate="";
@@ -1012,6 +1016,7 @@ function setWind(w){
   if(kmh < 3){ $("windTxt").textContent = "Calm"; $("windSub").textContent = `${kmh.toFixed(0)} km/h`; $("windArrow").style.opacity=.25; }
   else { $("windTxt").textContent = `Wind from ${compass(deg)}`; $("windSub").textContent = `${kmh.toFixed(0)} km/h${stale?" · earlier reading":""}`; $("windArrow").style.opacity=1; }
   $("windArrow").style.transform = `rotate(${(deg+180)%360}deg)`;      // arrow points where the wind is going
+  keepLabelsIn();
 }
 
 try{ localStorage.removeItem("myRegion"); }catch(e){}   // clean up the old "near me" choice
