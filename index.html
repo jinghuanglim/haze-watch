@@ -428,6 +428,18 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
   background:color-mix(in srgb, var(--ink) var(--o), transparent);color:var(--bg)}
 .form i.live{outline:1.5px solid var(--pen);outline-offset:1.5px;margin-left:3px}
 .bt-rules{margin-top:14px;max-width:640px}
+.comm{margin-top:18px;max-width:640px;border:1px solid var(--line);border-radius:12px;padding:12px 14px 8px;background:color-mix(in srgb,var(--paper) 60%,transparent)}
+.comm-head{display:flex;align-items:center;gap:8px;font:700 1.02rem/1.2 var(--f-hand);color:var(--pen);margin-bottom:6px}
+.ldot{width:8px;height:8px;border-radius:50%;background:var(--b3);box-shadow:0 0 0 0 color-mix(in srgb,var(--b3) 60%,transparent);animation:ping 1.8s ease-out infinite}
+.ldot.off{animation:none;background:var(--faint)}
+@keyframes ping{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--b3) 55%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
+.comm-list{list-style:none;margin:0;padding:0}
+.comm-list li{display:grid;grid-template-columns:3.4em 1.5em minmax(0,1fr);gap:6px;align-items:baseline;padding:7px 0;border-top:1px dashed var(--line);font-size:.92rem;line-height:1.4}
+.comm-list li:first-child{border-top:0}
+.comm-list time{font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;font-size:.82rem}
+.comm-list .ci{text-align:center}
+.comm-list p{margin:0;color:var(--ink)}
+.comm-more{margin:6px 0 2px;border:0;background:none;color:var(--pen);font:700 .95rem/1 var(--f-hand);cursor:pointer;padding:6px 0}
 .rd-rank{font:700 1rem/26px var(--f-hand);color:var(--pen);margin-top:2px}
 @media (max-width:420px){.lg-row{grid-template-columns:1.8em minmax(0,1fr) 2.8em auto;gap:8px}.form i{width:18px;height:18px}}
 .windgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start}
@@ -480,7 +492,7 @@ footer a{color:var(--ink)}
   .wrap > .sect:has(#hm){order:4}                                      /* Where it was worst: full width */
   .wrap > #windSect{order:5}            .wrap > .sect:has(#diurnal){order:6}   /* Follow the wind 60 | When it peaks 40 */
   .wrap > footer{order:7}
-  .league,.bt-rules{max-width:none}
+  .league,.bt-rules,.comm{max-width:none}
   .wrap > .sect:has(#daily), .wrap > .sect:has(#diurnal){display:flex;flex-direction:column}
   #daily, #diurnal{flex:1 1 auto;min-height:0}
 }
@@ -587,6 +599,11 @@ footer a{color:var(--ink)}
       <button type="button" id="btWeek" aria-pressed="false">This week</button>
     </div>
     <div class="league" id="league"></div>
+    <div class="comm" id="comm" hidden>
+      <div class="comm-head" id="commHead"></div>
+      <ol class="comm-list" id="commList" aria-live="polite"></ol>
+      <button type="button" class="comm-more" id="commMore" hidden></button>
+    </div>
     <p class="sub small bt-rules"><b>Cleanest air wins.</b> Each day, the region with the lowest average PM2.5 gets 3 points. 2nd cleanest gets 2, 3rd gets 1. Dots show each day's place (1 = cleanest that day). The ringed dot is today, which counts live, so places can change.</p>
   </section>
 
@@ -1451,6 +1468,226 @@ const aimTease = () => { const a=tz.getBoundingClientRect(), t=$("battle").getBo
 aimTease(); addEventListener("resize", aimTease);
 tz.onclick = ()=>$("battle").scrollIntoView({block:"start", behavior: reduceMotion?"auto":"smooth"});
 
+/* ---------- live match commentary ----------
+   Today's "match" told like football, from the hourly readings. Lower PM2.5 = better (cleaner air).
+   A rise in PM2.5 is a goal conceded; a fall is a save. Lines come from big phrase pools.
+   The pick is seeded by date + hour + event, so every visitor sees the same line and it never changes on refresh. */
+const CM = {
+  kickoff: [
+    "Kick-off! Five regions, one goal: breathe easy. {lead} starts cleanest on {lv}.",
+    "And we're off. {lead} takes the early lead with {lv}. {last} already looks short of breath on {xv}.",
+    "Whistle blows. {lead} opens on {lv}, the cleanest start of the five.",
+    "Midnight kick-off under hazy floodlights. {lead} leads, {last} trails on {xv}.",
+    "Teams are out. {lead} looks sharp early ({lv}). {last} is still finding its lungs ({xv}).",
+    "New match day! Yesterday's winner was {ywin}. Early leader today: {lead} on {lv}.",
+    "Here we go again. {lead} grabs first place on {lv}. Plenty of football left.",
+    "The ref checks the sky, then blows. {lead} starts on top ({lv}).",
+    "Fresh day, fresh air? Not quite. {lead} starts best on {lv}, {last} worst on {xv}.",
+    "Kick-off. {ywin} won yesterday. Can anyone stop them? {lead} leads early on {lv}."
+  ],
+  lead: [
+    "GOAL-LINE DRAMA! {r} takes the lead from {prev}.",
+    "Change at the top! {r} moves ahead of {prev} on the day's average.",
+    "{r} snatches first place. {prev} will be fuming.",
+    "What a turnaround. {r} is now the cleanest region today, overtaking {prev}.",
+    "{prev} slips, and {r} pounces. New leader!",
+    "The table flips. {r} goes top, {prev} drops to second.",
+    "{r} sneaks into the lead. {prev}'s air just wasn't clean enough.",
+    "A new name at the top: {r}. {prev} has some work to do.",
+    "{r} leads! The crowd breathes a little easier.",
+    "Lead change! {r} edges past {prev} by a whisker."
+  ],
+  concede: [
+    "Ouch. {r} concedes {d}. Now on {v}.",
+    "{r} lets one in. Up {d} to {v}.",
+    "Defensive mix-up in {r}. PM2.5 jumps {d} to {v}.",
+    "{r} is under pressure. Another {d} conceded, now {v}.",
+    "Smoke drifts through the {r} defence. +{d}, reading {v}.",
+    "That's a sloppy hour for {r}. Up {d} to {v}.",
+    "{r} gets caught out. +{d}. The keeper reaches for a mask.",
+    "Bad hour for {r}: up {d}, now sitting on {v}.",
+    "{r} concedes again. {v} and climbing.",
+    "Haze breaks through in {r}! +{d} this hour.",
+    "{r} can't clear its lines. PM2.5 up {d} to {v}."
+  ],
+  save: [
+    "Great save by {r}! Down {d} to {v}.",
+    "{r} clears the danger. PM2.5 falls {d} to {v}.",
+    "What a stop. {r} drops {d} in one hour.",
+    "{r} breathes out. Down {d}, now {v}.",
+    "Brilliant defending from {r}: −{d}, reading {v}.",
+    "{r} pushes the haze back. {v}, down {d}.",
+    "Wind at its back, {r} drops {d} to {v}.",
+    "{r}'s keeper gets fingertips to it! Down {d}.",
+    "Lovely hour for {r}. −{d}, now on {v}.",
+    "{r} clears it off the line. Down to {v}."
+  ],
+  yellow: [
+    "🟨 Yellow card for {r}! Into Elevated on {v}.",
+    "Booking! {r} crosses 55 and goes Elevated ({v}).",
+    "The ref reaches for the yellow. {r} on {v}, Elevated.",
+    "{r} goes into the book. Elevated now, {v}.",
+    "Caution for {r}: {v}. That's Elevated territory."
+  ],
+  red: [
+    "🟥 RED CARD! {r} is now High on {v}. Stay indoors, lads.",
+    "Straight red for {r}! {v} is in the High band.",
+    "{r} sees red. PM2.5 {v}, High. Cut the long runs.",
+    "Off you go, {r}! {v}. That's High.",
+    "Dismissal! {r} hits {v} and enters the High band."
+  ],
+  vhigh: [
+    "Match abandoned in {r}? {v} is Very high. Everyone inside!",
+    "Disaster for {r}: {v}, Very high. The ref is wearing an N95.",
+    "{r} hits {v}. Very high. This match should not be played outdoors.",
+    "Unbelievable scenes in {r}. {v}, Very high band."
+  ],
+  recover: [
+    "{r} gets the card rescinded. Back to {band} on {v}.",
+    "VAR review: {r} drops back to {band} ({v}).",
+    "{r} cleans up its act. {band} again, {v}.",
+    "Relief in {r}. Back down to {band} on {v}.",
+    "{r} talks the ref round. {band}, {v}.",
+    "Good news from {r}: {band} again at {v}."
+  ],
+  streak: [
+    "{r} keeps a clean sheet. {n} hours Normal in a row!",
+    "{n} hours of Normal air in {r}. Solid defending.",
+    "Clean sheet watch: {r} has been Normal for {n} hours.",
+    "{r} is unbeatable right now. {n} straight hours Normal.",
+    "Nothing getting past {r}. {n} Normal hours on the trot."
+  ],
+  high: [
+    "📈 Island average hits the day's high: {v}. Grim stuff.",
+    "Worst hour of the match so far. Island average {v}.",
+    "The haze is winning this half. Island average {v}, the day's worst.",
+    "New low point (high number): island average {v}.",
+    "Everyone's struggling now. {v} island-wide, worst of the day."
+  ],
+  low: [
+    "📉 Best hour of the day! Island average down to {v}.",
+    "The air clears a bit. Island average {v}, the day's best.",
+    "A breath of fresh air: {v} island-wide, lowest today.",
+    "Lovely spell of play. Island average falls to {v}.",
+    "Cleanest hour of the match so far: {v}."
+  ],
+  wind: [
+    "🌬️ Wind switches to {dir} at {spd} km/h. Tactics change.",
+    "The breeze turns {dir} ({spd} km/h). Watch for smoke from that side.",
+    "New wind from the {dir}, {spd} km/h. The game could shift.",
+    "Wind change! Now from the {dir} at {spd} km/h.",
+    "Flags turn: wind from the {dir}, {spd} km/h."
+  ],
+  bottom: [
+    "{r} drops to the bottom. {prev} climbs off last place.",
+    "New wooden spoon holder: {r}. {prev} escapes.",
+    "{r} slides to last. Rough day.",
+    "{prev} climbs out of the bottom spot. {r} takes its place."
+  ],
+  half: [
+    "⏸️ Half-time. {lead} leads on {lv}. {last} is bottom on {xv}.",
+    "Half-time whistle. {lead} cleanest so far ({lv}), {last} worst ({xv}).",
+    "Oranges and masks at half-time. {lead} top, {last} bottom.",
+    "Half-time: {lead} in front on {lv}. {last} needs a big second half.",
+    "Break time. Table so far: {lead} first, {last} last ({xv})."
+  ],
+  full: [
+    "🏁 Full time! {lead} wins with {lv}. {last} loses on {xv}.",
+    "That's it! {lead} takes the 3 points ({lv}). Hard luck, {last}.",
+    "Final whistle. {lead} wins the day on {lv}.",
+    "Full time. {lead} cleanest ({lv}), {last} smokiest ({xv}). See you tomorrow.",
+    "Match over. {lead} wins, {last} picks up the wooden spoon."
+  ],
+  quiet: [
+    "💤 Quiet spell. Not much changing.",
+    "Both sides are passing it around. Readings steady.",
+    "A calm few hours. Nobody wants to make a mistake.",
+    "Steady play. The table holds.",
+    "Midfield battle. No big moves this hour.",
+    "The crowd checks their phones. Very little happening."
+  ]
+};
+const CM_ICON = {kickoff:"📣", lead:"🔄", concede:"🥅", save:"🧤", yellow:"🟨", red:"🟥", vhigh:"🚨", recover:"🟩", streak:"🧹",
+  high:"📈", low:"📉", wind:"🌬️", bottom:"⬇️", half:"⏸️", full:"🏁", quiet:"💤"};
+const hash = str => { let h=2166136261; for(const c of str){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; };
+
+function commentary(dayStr){
+  const hs = hours.filter(h=>h.d===dayStr); if(!hs.length) return [];
+  const used = {}, out = [];
+  const say = (type, h, vars, seedExtra="") => {
+    const pool = CM[type]; let i = hash(`${dayStr}|${h}|${type}|${seedExtra}`) % pool.length;
+    used[type] = used[type] || new Set();
+    for(let k=0; k<pool.length && used[type].has(i); k++) i=(i+1)%pool.length;   // avoid repeats within the day
+    used[type].add(i);
+    const text = pool[i].replace(/\{(\w+)\}/g, (_,k)=> vars[k]!=null ? vars[k] : "");
+    out.push({h, type, text});
+  };
+  const yd = days.findIndex(d=>d.d===dayStr) - 1;
+  const ywin = yd>=0 ? REG[days[yd].reg.indexOf(Math.min(...days[yd].reg))].name : "nobody yet";
+  const cum = REG.map(()=>0); let prevLead=-1, prevLast=-1, prevW=null, lastWindH=-9, dayHi=-1, dayLo=1e9, lastEventH=0;
+  const streak = REG.map(()=>0), lastCard = REG.map(()=>-9), TH=[55,150,250];
+  let saidDir = null;
+  // band with a 5-point buffer, so a region hovering on a line doesn't flip cards every hour
+  const bandUp = (a,v) => { let b=a; while(b<3 && v>TH[b]+5) b++; return b; };
+  const bandDn = (a,v) => { let b=a; while(b>0 && v<TH[b-1]-5) b--; return b; };
+  hs.forEach((hr,k)=>{
+    hr.vals.forEach((v,r)=>cum[r]+=v);
+    const avg = cum.map(c=>c/(k+1)), order = REG.map((_,i)=>i).sort((a,b)=>avg[a]-avg[b]);
+    const lead = order[0], last = order[4], H = hr.h, before = out.length;
+    const base = {lead:REG[lead].name, last:REG[last].name, lv:Math.round(avg[lead]), xv:Math.round(avg[last]), ywin};
+    const prev = k>0 ? hs[k-1] : null;
+    hr.vals.forEach((v,r)=>{ streak[r] = v<=55 ? streak[r]+1 : 0; });
+    if(k===0){ say("kickoff", H, base); }
+    else {
+      if(lead!==prevLead) say("lead", H, {...base, r:REG[lead].name, prev:REG[prevLead].name});
+      // band changes (most serious first)
+      let up=null, down=null;
+      hr.vals.forEach((v,r)=>{ if(H-lastCard[r]<3) return; const a=bandIx(prev.vals[r]), bu=bandUp(a,v), bd=bandDn(a,v);
+        if(bu>a && (!up || bu>up.b)) up={r,b:bu,v}; else if(bd<a && (!down || bd<down.b)) down={r,b:bd,v}; });
+      if(up) lastCard[up.r]=H; if(down) lastCard[down.r]=H;
+      if(up) say(["","yellow","red","vhigh"][up.b], H, {r:REG[up.r].name, v:up.v}, up.r);
+      // biggest single-hour moves
+      const ds = hr.vals.map((v,r)=>v-prev.vals[r]);
+      const ri = ds.indexOf(Math.max(...ds)), fi = ds.indexOf(Math.min(...ds));
+      if(ds[ri]>=15 && (!up || up.r!==ri)) say("concede", H, {r:REG[ri].name, d:ds[ri], v:hr.vals[ri]}, ri);
+      if(down) say("recover", H, {r:REG[down.r].name, v:down.v, band:BANDS[down.b].label}, down.r);
+      if(ds[fi]<=-15 && (!down || down.r!==fi)) say("save", H, {r:REG[fi].name, d:-ds[fi], v:hr.vals[fi]}, fi);
+      if(k>=3 && hr.avg>dayHi) say("high", H, {v:Math.round(hr.avg)});
+      if(k>=3 && hr.avg<dayLo) say("low", H, {v:Math.round(hr.avg)});
+      const st = streak.findIndex(n=>n>=3 && n%3===0); if(st>=0) say("streak", H, {r:REG[st].name, n:streak[st]}, st);
+      if(last!==prevLast && lead===prevLead) say("bottom", H, {r:REG[last].name, prev:REG[prevLast].name});
+      const w = WIND.get(hr.t);
+      if(w && saidDir===null) saidDir = compass(w[0]);
+      if(w && w[1]>=5 && compass(w[0])!==saidDir && H-lastWindH>=3){ saidDir=compass(w[0]); say("wind", H, {dir:saidDir, spd:Math.round(w[1])}); lastWindH=H; }
+      if(w) prevW=w;
+      if(H===12) say("half", H, base);
+      if(H===23) say("full", H, base);
+      if(out.length===before && H-lastEventH>=3) say("quiet", H, base);
+    }
+    if(!prevW) prevW = WIND.get(hr.t) || null;
+    dayHi=Math.max(dayHi,hr.avg); dayLo=Math.min(dayLo,hr.avg);
+    if(out.length>before) lastEventH=H;
+    prevLead=lead; prevLast=last;
+  });
+  // keep it readable: at most 2 lines per hour (kick-off, half-time and full-time always stay)
+  const keep=[], per={};
+  out.forEach(e=>{ per[e.h]=(per[e.h]||0)+1; if(per[e.h]<=2 || ["kickoff","half","full"].includes(e.type)) keep.push(e); });
+  return keep;
+}
+let COMM_OPEN = false;
+function drawCommentary(){
+  const box=$("comm"); if(!box) return;
+  const dayStr = days.length ? days[days.length-1].d : null, ev = dayStr ? commentary(dayStr).reverse() : [];
+  if(!ev.length){ box.hidden=true; return; }
+  box.hidden=false;
+  const live = dayStr===todayD, show = COMM_OPEN ? ev : ev.slice(0,4);
+  $("commHead").innerHTML = `<span class="ldot${live?"":" off"}"></span>${live?"Live commentary":"Commentary"} · ${live?"today":fmtDay(dayStr)}`;
+  $("commList").innerHTML = show.map(e=>`<li><time>${fmtHour(e.h)}</time><span class="ci" aria-hidden="true">${CM_ICON[e.type]}</span><p>${e.text.replace(/^(🟨|🟥|📈|📉|🌬️|⏸️|🏁|💤)\s*/u,"")}</p></li>`).join("");
+  const more=$("commMore"); more.hidden = ev.length<=4;
+  more.textContent = COMM_OPEN ? "Show fewer" : `Show all ${ev.length} updates`;
+  more.onclick = ()=>{ COMM_OPEN=!COMM_OPEN; drawCommentary(); };
+}
+
 /* ---------- wind: where haze comes from ---------- */
 // Pair each hour's island-average PM2.5 with that hour's wind (direction it blows FROM, speed in km/h).
 const DIRS = ["N","NE","E","SE","S","SW","W","NW"];
@@ -1540,7 +1777,7 @@ function drawSpeed(){
 }
 
 /* ---------- draw ---------- */
-function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); drawBattle(); drawRose(); drawSpeed(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
+function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); drawBattle(); drawCommentary(); drawRose(); drawSpeed(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
 drawAll();
 window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); drawRose(); drawSpeed(); fitHeat(); }; window.__font=()=>renderNow(cur);
 window.__latest=last.t;
