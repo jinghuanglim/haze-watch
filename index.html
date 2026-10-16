@@ -1115,7 +1115,7 @@ function tipFor(box){ let t=box.querySelector(":scope > .tip"); if(!t){ t=docume
 // (Call after clearing the box, so its height is the space left, not the old chart.)
 const WIDE = matchMedia("(min-width:1680px)");
 function fillH(box, H){ if(!WIDE.matches) return H; const free=box.clientHeight*(box.clientWidth? (box.clientWidth/Math.max(300,box.clientWidth)) : 1);
-  return Math.round(Math.min(Math.max(H, free-6), H*1.8)); }
+  return Math.round(Math.min(Math.max(H, free-6), H*2.6)); }
 function niceMax(v){ const s=[50,100,150,200,250,300,350,400,500]; return s.find(x=>x>=v)||Math.ceil(v/100)*100; }
 const quantile = (a,q) => { const s=[...a].sort((x,y)=>x-y); return s[Math.min(s.length-1,Math.floor(q*(s.length-1)))]; };
 
