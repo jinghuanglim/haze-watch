@@ -193,6 +193,8 @@ main{margin-top:clamp(-64px,-5vw,-32px);position:relative}
   font:400 1.15rem/1 var(--f-display);font-variant-numeric:tabular-nums;color:var(--ink);cursor:pointer}
 .mk{grid-auto-flow:column;gap:6px}
 .mk small{font:600 .72rem/1 var(--f-body);color:var(--muted);letter-spacing:.01em}
+#map.tight .mk{height:28px;min-width:38px;padding:0 6px;gap:3px;font-size:.98rem;border-width:2px}
+#map.tight .mk small{font-size:.62rem}
 .mk small.up{color:var(--b3)} .mk small.down{color:var(--b1)}
 .leaflet-interactive.rg{cursor:pointer;transition:fill-opacity .25s ease}
 /* region slip: a ruled diary note taped under the map */
@@ -866,6 +868,19 @@ setInterval(()=>{ if(LAST_MOOD>=0 && !window.__timer && !document.hidden) say(LA
 
 /* ---------- map (Leaflet + OneMap, muted to grey) ---------- */
 const HOME=[[1.262,103.64],[1.468,103.975]];
+function fitHome(){ if(!LMAP) return; LMAP.fitBounds(HOME); keepLabelsIn(); }
+// Narrow maps: the East/West labels can hang past the map edge. Slide any such label back inside
+// (only when its point is on screen, so panning the map still works as expected).
+function keepLabelsIn(){
+  if(!LMAP) return; const box=LMAP.getContainer().getBoundingClientRect(), gap=6;
+  LMAP.getContainer().classList.toggle("tight", box.width < 300);   // very small phones: smaller labels so three fit side by side
+  MARKERS.forEach(mk=>{ const inner=mk.getElement() && mk.getElement().firstElementChild; if(!inner) return;
+    inner.style.translate="";
+    const p=LMAP.latLngToContainerPoint(mk.getLatLng()); if(p.x<0 || p.x>box.width) return;
+    const b=inner.getBoundingClientRect();
+    const dx = b.right>box.right-gap ? box.right-gap-b.right : b.left<box.left+gap ? box.left+gap-b.left : 0;
+    if(dx) inner.style.translate=`${Math.round(dx)}px 0`; });
+}
 let HRS=[];
 let LMAP=null, TILE=null, TILE_STYLE="", AREAS=[], MARKERS=[], MAP_I=-1, OPEN_REG=-1;
 const isDark = () => matchMedia("(prefers-color-scheme: dark)").matches ? document.documentElement.dataset.theme!=="light" : document.documentElement.dataset.theme==="dark";
@@ -874,7 +889,7 @@ function initMap(){
   if(LMAP || !window.L) return;
   LMAP = L.map("map",{zoomControl:true, scrollWheelZoom:false, maxBounds:L.latLngBounds([1.17,103.58],[1.49,104.03]), maxBoundsViscosity:1,
     minZoom:10, maxZoom:16, zoomSnap:0.25, zoomDelta:0.5});
-  LMAP.fitBounds(HOME);
+  fitHome();
   // Touch screens: one finger scrolls the page; two fingers move and zoom the map.
   if(matchMedia("(pointer: coarse)").matches){
     LMAP.dragging.disable();
@@ -889,6 +904,7 @@ function initMap(){
     }, {passive:true});
     box.addEventListener("touchstart", e=>{ if(e.touches.length>1){ clearTimeout(t); note.classList.remove("on"); } }, {passive:true});
   }
+  LMAP.on("zoomend moveend resize", keepLabelsIn);
   LMAP.on("click focus",()=>LMAP.scrollWheelZoom.enable());
   LMAP.on("mouseout blur",()=>LMAP.scrollWheelZoom.disable());
   const lg = L.control({position:"bottomleft"});
@@ -969,6 +985,7 @@ function updateMap(hi){
     const tr = t ? `<small class="${t.cls}">${t.sym}${t.d ? Math.abs(t.d) : ""}</small>` : "";
     MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})" aria-label="${r.name}: ${v}${t?", "+t.txt:""}. Tap for 24-hour trend.">${v}${tr}</div>`}));
   });
+  keepLabelsIn();
   showRegionCard();   // keep the region card and outline in step with the time slider
 }
 
@@ -1581,7 +1598,7 @@ async function load(manual){
     showNote(behind ? liveErr : null, latest);
     if(first || manual || (latest !== window.__latest && !window.__timer)) boot(data);
     document.body.classList.remove("pending");
-    if(first){ if(LMAP){ LMAP.invalidateSize(); LMAP.fitBounds(HOME); } window.__charts && window.__charts(); }
+    if(first){ if(LMAP){ LMAP.invalidateSize(); fitHome(); } window.__charts && window.__charts(); }
     if(first) hideVeil();
     first=false;
     const ageH = (Date.now() - new Date(latest).getTime())/36e5;
