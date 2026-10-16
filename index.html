@@ -343,7 +343,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 @media (max-width:600px){
   .leaflet-tile-pane{filter:var(--map-filter) opacity(.7)}
   .lede{display:none}
-  .sky-inner{padding-block:6px 92px;gap:14px}
+  .sky-inner{padding-block:6px 64px;gap:10px}
+  /* compact avatar row: small face + one short bubble, so the map starts higher */
+  .mood{align-items:center;gap:10px}
+  .ava{width:52px}
+  .bubble{padding:8px 12px;border-radius:14px 14px 14px 4px;gap:0}
+  .bubble b, #moodNote{display:none}
+  #moodLine{font-size:.9rem;line-height:1.35;min-height:0}
 }
 /* two-finger hint on the map (touch screens) */
 .mapnote{position:absolute;inset:0;z-index:1001;display:grid;place-items:center;pointer-events:none;
