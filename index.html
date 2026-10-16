@@ -391,6 +391,28 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .mapbox.card::before{transform:rotate(-6deg);width:66px}
 .sec-head{display:flex;flex-direction:column;gap:6px;margin-bottom:22px;max-width:none}
 .chart{position:relative}
+/* region battle */
+.tease{display:flex;align-items:center;gap:8px;width:100%;margin-top:10px;padding:9px 12px;border:1px dashed var(--line);border-radius:10px;
+  background:transparent;color:var(--ink);font:500 .9rem/1.3 var(--f-body);text-align:left;cursor:pointer}
+.tease:hover{border-color:var(--ink)}
+.tease .go{margin-left:auto;color:var(--pen);font:700 .95rem/1 var(--f-hand);white-space:nowrap}
+.league{display:flex;flex-direction:column;max-width:640px}
+.lg-row{display:grid;grid-template-columns:2.2em minmax(0,1fr) 3.4em 3.4em auto;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.lg-row.hd{font-size:.74rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;padding-block:4px 6px}
+.lg-row .pos{font:400 1.25rem/1 var(--f-display);text-align:center}
+.lg-row .nm{font-weight:600;font-size:1.02rem}
+.lg-row .nm small{display:block;font-weight:400;font-size:.76rem;color:var(--faint)}
+.lg-row .pts{font:400 1.35rem/1 var(--f-display);font-variant-numeric:tabular-nums;text-align:right}
+.lg-row .w{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.lg-row.hd .pts,.lg-row.hd .w{font:inherit}
+.lg-row.top{background:color-mix(in srgb, var(--pen) 7%, transparent);border-radius:8px}
+.form{display:flex;gap:4px;justify-content:flex-end}
+.form i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:600 .68rem/1 var(--f-body);font-style:normal;
+  background:color-mix(in srgb, var(--ink) var(--o), transparent);color:var(--bg)}
+.form i.live{outline:2px dashed var(--pen);outline-offset:1px}
+.bt-rules{margin-top:14px;max-width:640px}
+.rd-rank{font:700 1rem/26px var(--f-hand);color:var(--pen);margin-top:2px}
+@media (max-width:420px){.lg-row{grid-template-columns:1.8em minmax(0,1fr) 2.8em auto;gap:8px}.lg-row .w{display:none}.form i{width:18px;height:18px}}
 .windgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start}
 @media (max-width:760px){.windgrid{grid-template-columns:minmax(0,1fr)}}
 .rose{max-width:420px;margin:0 auto}
@@ -471,6 +493,7 @@ footer a{color:var(--ink)}
       <div id="map" class="leaf" role="region" aria-label="Map of Singapore showing PM2.5 by region"></div>
       <div class="rdetail rp" id="rdetail" aria-live="polite" hidden></div>
       <div class="keyrow" id="keyRow"></div>
+      <button type="button" class="tease" id="battleTease" hidden></button>
       <p class="maphint">Numbers are PM2.5 (µg/m³). Arrows show the change from the hour before. Tap a region for its last 24 hours.</p>
       <div class="timebar">
         <div class="dayrow">
@@ -506,6 +529,20 @@ footer a{color:var(--ink)}
       </div>
       <div class="facts card"><span class="kicker facts-k">By the numbers</span><div class="facts-grid" id="facts"></div></div>
     </div>
+  </section>
+
+  <section class="sect tape-r" id="battle">
+    <div class="sec-head">
+      <span class="kicker">Region battle</span>
+      <h2 id="btHead">Region battle</h2>
+      <p class="sub" id="btSub"></p>
+    </div>
+    <div class="gridtabs" role="group" aria-label="Battle period">
+      <button type="button" id="btAll" aria-pressed="true">Since 1 Oct</button>
+      <button type="button" id="btWeek" aria-pressed="false">This week</button>
+    </div>
+    <div class="league" id="league"></div>
+    <p class="sub small bt-rules">Each day, the region with the cleanest air (lowest daily average) gets 3 points. 2nd gets 2, 3rd gets 1. Today counts live, so places can change during the day.</p>
   </section>
 
   <section class="sect dots">
@@ -607,6 +644,7 @@ const mean = a => a.reduce((s,x)=>s+x,0)/a.length;
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const fmtDay = d => `${+d.slice(8,10)} ${MON[+d.slice(5,7)-1]}`;
+const ordinal = n => n + (["th","st","nd","rd"][n%100>10 && n%100<14 ? 0 : n%10] || "th");
 const fmtHour = h => { const hh=h%12||12; return `${hh}${h<12?"am":"pm"}`; };
 const fmtTs = t => `${fmtDay(t.slice(0,10))}, ${fmtHour(+t.slice(11,13))}`;
 const sgDate = () => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Singapore"}).format(new Date());
@@ -884,6 +922,7 @@ function regionCard(i, r){
       <div class="rd-num"><b>${v}</b><span>µg/m³</span></div>
       <div><span class="rd-band">${b.label}</span>${t?`<span class="rd-trend">${t.sym} ${t.txt}</span>`:""}</div>
       <p class="rd-adv">${b.advice}</p>
+      ${window.BATTLE ? `<div class="rd-rank">🏆 ${ordinal(BATTLE.pos[r])} in the region battle · ${BATTLE.pts[r]} pts</div>` : ""}
     </div>
     <div class="rd-chart">${sp.svg}<div class="rd-cap"><span>${sp.from}</span><span>low ${sp.lo}, high ${sp.hi}</span><span>${sp.to}</span></div></div>`;
 }
@@ -1262,6 +1301,49 @@ function drawDiurnal(){
   hit.addEventListener("pointerleave",()=>{ tip.hidden=true; cross.setAttribute("opacity",0); });
 }
 
+/* ---------- region battle ---------- */
+// A daily "match": rank regions by daily average PM2.5. Cleanest = 3 pts, 2nd = 2, 3rd = 1. Today counts live.
+const PTS = [3,2,1,0,0], MEDAL = ["🥇","🥈","🥉"];
+const todayD = sgDate();
+const weekStart = (()=>{ const t=new Date(todayD+"T12:00:00+08:00"), back=(t.getUTCDay()+6)%7; t.setUTCDate(t.getUTCDate()-back); return t.toISOString().slice(0,10); })();
+function league(ds){
+  const t = REG.map((r,i)=>({i, name:r.name, pts:0, wins:0, form:[]}));
+  ds.forEach(d=>{ REG.map((_,i)=>i).sort((a,b)=>d.reg[a]-d.reg[b]).forEach((ri,rank)=>{
+    t[ri].pts += PTS[rank]; t[ri].form.push(rank+1); if(rank===0) t[ri].wins++; }); });
+  return t.sort((a,b)=>b.pts-a.pts || b.wins-a.wins || a.i-b.i);
+}
+const LG_ALL = league(days), weekDays = days.filter(d=>d.d>=weekStart), LG_WEEK = league(weekDays);
+window.BATTLE = {pos:[], pts:[]}; LG_ALL.forEach((r,k)=>{ BATTLE.pos[r.i]=k+1; BATTLE.pts[r.i]=r.pts; });
+const hasToday = days.length && days[days.length-1].d===todayD;
+let BT = window.__bt || "all";
+function drawBattle(){
+  const all = BT==="all", lg = all ? LG_ALL : LG_WEEK, ds = all ? days : weekDays;
+  $("btAll").setAttribute("aria-pressed", all); $("btWeek").setAttribute("aria-pressed", !all);
+  const [a,b] = lg, last = lg[lg.length-1];
+  $("btHead").textContent = !ds.length ? "Region battle"
+    : a.pts===b.pts ? `${a.name} and ${b.name} are tied at the top`
+    : `${a.name} leads by ${a.pts-b.pts} point${a.pts-b.pts===1?"":"s"}`;
+  const tday = hasToday ? days[days.length-1] : null;
+  const tOrder = tday ? REG.map((_,i)=>i).sort((x,y)=>tday.reg[x]-tday.reg[y]) : null;
+  $("btSub").textContent = `${ds.length} match day${ds.length===1?"":"s"}${all?" since 1 Oct":` since Mon ${fmtDay(weekStart)}`}. ${last.name} is bottom with ${last.pts} pt${last.pts===1?"":"s"}.`
+    + (tOrder ? ` Today so far: ${REG[tOrder[0]].name} cleanest, ${REG[tOrder[4]].name} smokiest.` : "");
+  const ops = ["100%","72%","50%","32%","20%"];
+  const rows = lg.map((r,k)=>{
+    const f = r.form.slice(-5), off = r.form.length - f.length;
+    const chips = f.map((p,j)=>{ const live = hasToday && off+j===r.form.length-1;
+      return `<i style="--o:${ops[p-1]}" class="${live?"live":""}" title="${ordinal(p)}${live?" (today, live)":""}">${p}</i>`; }).join("");
+    return `<div class="lg-row${k===0?" top":""}"><span class="pos">${k<3 && r.pts>0 ? MEDAL[k] : k+1}</span>
+      <span class="nm">${r.name}<small>${r.wins} daily win${r.wins===1?"":"s"}</small></span>
+      <span class="pts">${r.pts}</span><span class="w">${r.wins}</span><span class="form">${chips}</span></div>`; }).join("");
+  $("league").innerHTML = `<div class="lg-row hd"><span>#</span><span>Region</span><span class="pts">Pts</span><span class="w">Wins</span><span class="form">Last 5 days</span></div>` + rows;
+}
+$("btAll").onclick = ()=>{ BT = window.__bt = "all"; drawBattle(); };
+$("btWeek").onclick = ()=>{ BT = window.__bt = "week"; drawBattle(); };
+const tz = $("battleTease"), lead = LG_ALL[0];
+tz.innerHTML = `<span>🏆 <b>${lead.name}</b> leads the region battle with ${lead.pts} pts</span><span class="go">see table ↓</span>`;
+tz.hidden = false;
+tz.onclick = ()=>$("battle").scrollIntoView({block:"start", behavior: reduceMotion?"auto":"smooth"});
+
 /* ---------- wind: where haze comes from ---------- */
 // Pair each hour's island-average PM2.5 with that hour's wind (direction it blows FROM, speed in km/h).
 const DIRS = ["N","NE","E","SE","S","SW","W","NW"];
@@ -1351,7 +1433,7 @@ function drawSpeed(){
 }
 
 /* ---------- draw ---------- */
-function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); drawRose(); drawSpeed(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
+function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); drawBattle(); drawRose(); drawSpeed(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
 drawAll();
 window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); drawRose(); drawSpeed(); fitHeat(); }; window.__font=()=>renderNow(cur);
 window.__latest=last.t;
