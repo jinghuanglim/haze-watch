@@ -265,6 +265,10 @@ main{margin-top:clamp(-64px,-5vw,-32px);position:relative}
 .hourwrap{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .ticks{display:flex;justify-content:space-between;font-size:.75rem;color:var(--faint);padding:0 2px}
 .hourlbl{font:600 1.05rem/1 var(--f-body);font-variant-numeric:tabular-nums;color:var(--ink);min-width:3.4em;text-align:right}
+.hourlbl.wide{min-width:6.8em;white-space:nowrap}
+.ticks.abs{display:block;position:relative;height:1.3em}
+.ticks.abs span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.ticks.abs span.first{transform:none} .ticks.abs span.last{transform:translateX(-100%)}
 @media (max-width:600px){.scrub{flex-wrap:wrap}.hourwrap{order:3;flex-basis:100%}.hourlbl{margin-left:auto}}
 input.hour{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer;margin:0}
 input.hour::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--track,var(--line))}
@@ -1317,6 +1321,16 @@ let cur = hours.length-1; window.__timer=null;
 function nearest(d, h){ const hs=dayHours(d); if(!hs.length) return null; let best=hs[0]; hs.forEach(x=>{ if(Math.abs(x-h)<Math.abs(best-h)) best=x; }); return at.get(d+"|"+best); }
 function syncControls(i){
   const hr = hours[i], maxH = Math.max(...dayHours(hr.d));
+  if(window.__mode==="all"){                 // "All": the slider spans every hour since 1 Oct, ticks show dates
+    daySel.value = hr.d; slider.min=0; slider.max=hours.length-1; slider.value=i;
+    $("hourLbl").textContent = `${fmtDay(hr.d)}, ${fmtHour(hr.h)}`; $("hourLbl").classList.add("wide");
+    const di = days.findIndex(x=>x.d===hr.d); $("prevDay").disabled = di<=0; $("nextDay").disabled = di>=days.length-1;
+    const pv = hours.length>1 ? i/(hours.length-1)*100 : 100;
+    slider.style.setProperty("--track", `linear-gradient(to right, var(--tint) 0 ${pv}%, var(--line) ${pv}% 100%)`);
+    slider.setAttribute("aria-label","Choose a time since 1 Oct"); slider.setAttribute("aria-valuetext", `${dayName(hr.d)}, ${fmtHour(hr.h)}`);
+    return;
+  }
+  slider.min=0; slider.max=23; slider.setAttribute("aria-label","Choose an hour"); $("hourLbl").classList.remove("wide");
   daySel.value = hr.d; slider.value = hr.h; $("hourLbl").textContent = fmtHour(hr.h);
   const di = days.findIndex(x=>x.d===hr.d);
   $("prevDay").disabled = di<=0; $("nextDay").disabled = di>=days.length-1;
@@ -1326,14 +1340,28 @@ function syncControls(i){
 }
 function go(i){ if(i==null) return; cur=i; renderNow(cur); syncControls(cur); }
 function stop(){ if(window.__timer){ clearInterval(window.__timer); window.__timer=null; } playBtn.textContent="▶ Play"; }
-slider.addEventListener("input", ()=>{ stop(); go(nearest(hours[cur].d, +slider.value)); });
+slider.addEventListener("input", ()=>{ stop(); go(window.__mode==="all" ? +slider.value : nearest(hours[cur].d, +slider.value)); });
 daySel.addEventListener("change", ()=>{ stop(); go(nearest(daySel.value, hours[cur].h)); });
 $("prevDay").addEventListener("click", ()=>{ stop(); const di=days.findIndex(x=>x.d===hours[cur].d); if(di>0) go(nearest(days[di-1].d, hours[cur].h)); });
 $("nextDay").addEventListener("click", ()=>{ stop(); const di=days.findIndex(x=>x.d===hours[cur].d); if(di<days.length-1) go(nearest(days[di+1].d, hours[cur].h)); });
 $("toLatest").addEventListener("click", ()=>{ stop(); go(hours.length-1); });
 playBtn.textContent="▶ Play";
 let mode = window.__mode || "day";
-function setMode(m){ mode = window.__mode = m; $("modeDay").setAttribute("aria-pressed", m==="day"); $("modeAll").setAttribute("aria-pressed", m==="all"); }
+function setTicks(){
+  const tk = slider.parentElement.querySelector(".ticks");
+  if(mode!=="all"){ tk.classList.remove("abs"); tk.innerHTML = "<span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span>"; return; }
+  // date ticks at the first hour of evenly spaced days, placed where that hour sits on the slider
+  const n = hours.length-1, firsts = days.map(d=>({d:d.d, i:hours.findIndex(h=>h.d===d.d)}));
+  const want = Math.min(firsts.length, innerWidth<600 ? 4 : 6), step = (firsts.length-1)/Math.max(1,want-1);
+  const pos = f => n>0 ? f.i/n*100 : 0;
+  // first date at the left edge, latest date pinned to the right edge, evenly spaced dates between (none crowding the ends)
+  const mid = [...new Set(Array.from({length:want},(_,k)=>Math.round(k*step)))].slice(1,-1).map(k=>firsts[k]).filter(f=>pos(f)>9 && pos(f)<88);
+  const pick = [{...firsts[0], x:0, cls:"first"}, ...mid.map(f=>({...f, x:pos(f), cls:""})), {...firsts[firsts.length-1], x:100, cls:"last"}];
+  tk.classList.add("abs");
+  tk.innerHTML = pick.map(f=>`<span class="${f.cls}" style="left:${f.x}%">${fmtDay(f.d)}</span>`).join("");
+}
+function setMode(m){ mode = window.__mode = m; $("modeDay").setAttribute("aria-pressed", m==="day"); $("modeAll").setAttribute("aria-pressed", m==="all");
+  setTicks(); if(hours[cur]) syncControls(cur); }
 setMode(mode);
 $("modeDay").addEventListener("click", ()=>{ stop(); setMode("day"); });
 $("modeAll").addEventListener("click", ()=>{ stop(); setMode("all"); });
