@@ -385,6 +385,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .mapbox.card::before{transform:rotate(-6deg);width:66px}
 .sec-head{display:flex;flex-direction:column;gap:6px;margin-bottom:22px;max-width:none}
 .chart{position:relative}
+.windgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start}
+@media (max-width:760px){.windgrid{grid-template-columns:minmax(0,1fr)}}
+.rose{max-width:420px;margin:0 auto}
+.minihead{font:400 1.15rem/1.25 var(--f-display);margin:0 0 4px}
+.small{font-size:.86rem}
+#wrGeo{margin-top:10px}
+#wsSub{margin-bottom:14px}
 .chart svg{display:block;width:100%;height:auto;overflow:visible}
 .legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.84rem;color:var(--muted);margin-bottom:12px}
 .legend span{display:inline-flex;align-items:center;gap:7px}
@@ -535,6 +542,26 @@ footer a{color:var(--ink)}
       <span><span class="swl" style="border-color:var(--b2);border-top-width:1.5px"></span>Elevated above 55</span>
     </div>
     <div class="chart" id="diurnal"></div>
+  </section>
+
+  <section class="sect tape-r" id="windSect">
+    <div class="sec-head">
+      <span class="kicker">Follow the wind</span>
+      <h2 id="wrHead">Where the haze blows in from</h2>
+      <p class="sub" id="wrSub">Each petal is a wind direction. Longer petal = hazier air when the wind came from there.</p>
+    </div>
+    <div class="windgrid">
+      <div>
+        <div class="legend" id="wrLegend"></div>
+        <div class="chart rose" id="rose"></div>
+        <p class="sub small" id="wrGeo">Sumatra lies to the west and southwest. Borneo (Kalimantan) lies to the east and southeast.</p>
+      </div>
+      <div>
+        <h3 class="minihead" id="wsHead">Calm vs. windy</h3>
+        <p class="sub small" id="wsSub">Average island reading for each wind speed.</p>
+        <div class="chart" id="wspeed"></div>
+      </div>
+    </div>
   </section>
 
   <footer>
@@ -1229,10 +1256,98 @@ function drawDiurnal(){
   hit.addEventListener("pointerleave",()=>{ tip.hidden=true; cross.setAttribute("opacity",0); });
 }
 
+/* ---------- wind: where haze comes from ---------- */
+// Pair each hour's island-average PM2.5 with that hour's wind (direction it blows FROM, speed in km/h).
+const DIRS = ["N","NE","E","SE","S","SW","W","NW"];
+const DIR_NAME = ["north","northeast","east","southeast","south","southwest","west","northwest"];
+const MIN_HRS = 6;                                   // fewer hours than this = too few to trust
+const windRows = hours.filter(h=>WIND.has(h.t)).map(h=>{ const [d,s]=WIND.get(h.t); return {avg:h.avg, d, s, k:Math.floor(((d+22.5)%360)/45)}; });
+const rose = DIRS.map((n,k)=>{ const xs=windRows.filter(r=>r.k===k); return {n, k, hrs:xs.length, avg:xs.length?mean(xs.map(r=>r.avg)):0, ok:xs.length>=MIN_HRS}; });
+const trusted = rose.filter(r=>r.ok);
+const worstDir = trusted.length ? trusted.reduce((a,b)=>b.avg>a.avg?b:a) : null;
+const bestDir = trusted.length ? trusted.reduce((a,b)=>b.avg<a.avg?b:a) : null;
+const SPEEDS = [{n:"Calm", r:"under 5 km/h", lo:0, hi:5}, {n:"Light breeze", r:"5–10 km/h", lo:5, hi:10}, {n:"Breezy", r:"10+ km/h", lo:10, hi:Infinity}]
+  .map(b=>{ const xs=windRows.filter(r=>r.s>=b.lo && r.s<b.hi); return {...b, hrs:xs.length, avg:xs.length?mean(xs.map(r=>r.avg)):0, ok:xs.length>=MIN_HRS}; });
+const nowWind = windFor(hours.length-1);
+const nowK = nowWind ? Math.floor(((nowWind[0]+22.5)%360)/45) : -1;
+
+if(!windRows.length){ $("windSect").hidden = true; }
+else {
+  $("wrHead").textContent = worstDir ? `Haze is worst when wind blows from the ${DIR_NAME[worstDir.k]}` : "Where the haze blows in from";
+  $("wrSub").textContent = `Each petal is a wind direction. Longer petal = hazier air when wind came from there. Based on ${windRows.length} hours.`
+    + (worstDir && bestDir && worstDir!==bestDir ? ` ${DIRS[worstDir.k]} winds averaged ${Math.round(worstDir.avg)}; ${DIRS[bestDir.k]} winds only ${Math.round(bestDir.avg)}.` : "");
+  $("wrLegend").innerHTML = BANDS.slice(0,3).map((b,i)=>`<span><span class="sw" style="background:var(${b.c})"></span>${b.label}</span>`).join("")
+    + `<span><span class="sw" style="border:2px solid var(--ink)"></span>Smokiest</span><span><span class="sw" style="border:1.5px dashed var(--faint)"></span>Under ${MIN_HRS} hours</span>`;
+  const okS = SPEEDS.filter(s=>s.ok), calm = okS.find(s=>s.lo===0), windy = okS.filter(s=>s.lo>0);
+  if(calm && windy.length){
+    const wAvg = mean(windy.map(s=>s.avg)), r = wAvg/calm.avg;
+    const top = okS.reduce((a,b)=>b.avg>a.avg?b:a), low = okS.reduce((a,b)=>b.avg<a.avg?b:a);
+    $("wsHead").textContent = r>=1.15 ? "Breezier hours were hazier. The wind carries smoke in."
+      : r<=0.87 ? "Still air traps the haze. A breeze clears it."
+      : "Wind speed made only a small difference.";
+    $("wsSub").textContent = "Average island reading for each wind speed." + (top!==low ? ` Haziest: ${top.n.toLowerCase()} (${Math.round(top.avg)}). Cleanest: ${low.n.toLowerCase()} (${Math.round(low.avg)}).` : "");
+  }
+}
+
+function drawRose(){
+  const box=$("rose"); box.innerHTML=""; if(!windRows.length) return;
+  const S=Math.min(420, Math.max(280, box.clientWidth||340)), cx=S/2, cy=S/2, rMax=S/2-38;
+  const top = Math.max(...rose.map(r=>r.avg), 60), yMax = niceMax(top*1.05);
+  const rad = v => v/yMax*rMax, pt = (deg, r) => [cx+r*Math.sin(deg*Math.PI/180), cy-r*Math.cos(deg*Math.PI/180)];
+  const svg=el("svg",{viewBox:`0 0 ${S} ${S}`,role:"img","aria-label":"Wind rose: average PM2.5 by wind direction"},box);
+  const step = yMax<=100?25:50;
+  for(let v=step; v<=yMax; v+=step){ el("circle",{cx,cy,r:rad(v),fill:"none",stroke:css("--line")},svg);
+    txt(svg, cx+3, cy-rad(v)-3, v, {"font-size":10,fill:css("--faint")}); }
+  el("circle",{cx,cy,r:rad(55),fill:"none",stroke:css("--b2"),"stroke-width":1.2,"stroke-dasharray":"4 3"},svg);
+  const tip=tipFor(box);
+  rose.forEach(r=>{
+    const a=r.k*45, rr=Math.max(rad(r.avg), r.hrs?6:0);
+    if(r.hrs){
+      const [x1,y1]=pt(a-19,rr), [x2,y2]=pt(a+19,rr);
+      const bc = BANDS[bandIx(r.avg)].c;
+      const p = el("path",{d:`M${cx},${cy} L${x1},${y1} A${rr},${rr} 0 0 1 ${x2},${y2} Z`,
+        fill: r.ok ? `color-mix(in srgb, var(${bc}) 82%, var(--surface))` : "transparent",
+        stroke: r===worstDir ? css("--ink") : r.ok ? css("--surface") : css("--faint"),
+        "stroke-width": r===worstDir ? 2 : 1.4, "stroke-dasharray": r.ok ? "" : "4 3", "stroke-linejoin":"round", style:"cursor:pointer"},svg);
+      const show=()=>{ const b=svg.getBoundingClientRect(), [tx,ty]=pt(a, rr*0.6);
+        tip.hidden=false; tip.style.left=Math.min(Math.max(tx/S*b.width,70),b.width-70)+"px"; tip.style.top=(ty/S*b.height-14)+"px";
+        tip.innerHTML=`<b>From the ${DIR_NAME[r.k]}</b><br>${r.hrs} hours · avg ${Math.round(r.avg)}<br>${r.ok?band(r.avg).label:"Too few hours to trust"}`;
+        p.setAttribute("opacity",.8); };
+      p.addEventListener("pointerenter",show); p.addEventListener("pointerdown",show);
+      p.addEventListener("pointerleave",()=>{ tip.hidden=true; p.setAttribute("opacity",1); });
+    }
+    const [lx,ly]=pt(a, rMax+20), isNow = r.k===nowK;
+    const t = txt(svg, lx, ly+4, DIRS[r.k], {"text-anchor":"middle","font-size":isNow?13:12,"font-weight":isNow?700:500,fill:isNow?css("--pen"):css("--muted")});
+    if(isNow) txt(svg, lx, ly+18, "now", {"text-anchor":"middle","font-size":11,"font-family":css("--f-hand"),"font-weight":700,fill:css("--pen")});
+  });
+  el("circle",{cx,cy,r:3,fill:css("--ink")},svg);
+}
+
+function drawSpeed(){
+  const box=$("wspeed"); box.innerHTML=""; if(!windRows.length) return;
+  const W=Math.max(280, box.clientWidth||380), rowH=56, T=4, L=104, R=64, H=T+SPEEDS.length*rowH;
+  const xMax = niceMax(Math.max(...SPEEDS.map(s=>s.avg), 60)*1.05), x = v => L+v/xMax*(W-L-R);
+  const svg=el("svg",{viewBox:`0 0 ${W} ${H+22}`,role:"img","aria-label":"Average PM2.5 by wind speed"},box);
+  el("line",{x1:x(55),x2:x(55),y1:T,y2:H,stroke:css("--b2"),"stroke-width":1.2,"stroke-dasharray":"4 3"},svg);
+  txt(svg, x(55), H+16, "55 · Normal limit", {"text-anchor":"middle","font-size":10,fill:css("--faint")});
+  SPEEDS.forEach((s,i)=>{
+    const y0=T+i*rowH, bh=22, by=y0+8;
+    txt(svg, 0, by+10, s.n, {"font-size":13,"font-weight":600,fill:css("--ink")});
+    txt(svg, 0, by+26, s.r, {"font-size":11,fill:css("--faint")});
+    if(!s.hrs){ txt(svg, L, by+15, "no hours yet", {"font-size":12,fill:css("--faint")}); return; }
+    const bc = BANDS[bandIx(s.avg)].c;
+    el("rect",{x:L,y:by,width:Math.max(2,x(s.avg)-L),height:bh,rx:4,
+      fill: s.ok ? `color-mix(in srgb, var(${bc}) 82%, var(--surface))` : "transparent",
+      stroke: s.ok ? "none" : css("--faint"), "stroke-dasharray":"4 3"},svg);
+    txt(svg, x(s.avg)+8, by+15, Math.round(s.avg), {"font-size":14,"font-weight":700,fill:css("--ink"),"font-family":css("--f-num")});
+    txt(svg, x(s.avg)+8, by+30, `${s.hrs} hrs${s.ok?"":" · too few"}`, {"font-size":10.5,fill:css("--faint")});
+  });
+}
+
 /* ---------- draw ---------- */
-function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
+function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); drawRose(); drawSpeed(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
 drawAll();
-window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); fitHeat(); }; window.__font=()=>renderNow(cur);
+window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); drawRose(); drawSpeed(); fitHeat(); }; window.__font=()=>renderNow(cur);
 window.__latest=last.t;
 }
 
