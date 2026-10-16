@@ -404,6 +404,61 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .mapbox.card::before{transform:rotate(-6deg);width:66px}
 .sec-head{display:flex;flex-direction:column;gap:6px;margin-bottom:22px;max-width:none}
 .chart{position:relative}
+/* season boss */
+.arena{display:grid;grid-template-columns:clamp(64px,10vw,96px) minmax(0,1fr) clamp(88px,13vw,130px);align-items:center;gap:clamp(10px,2vw,18px);
+  padding:14px;border-radius:14px;background:linear-gradient(90deg,color-mix(in srgb,var(--b1) 10%,transparent),transparent 40%,transparent 60%,color-mix(in srgb,var(--b3) 12%,transparent))}
+.fighter{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.fname{font:700 .95rem/1 var(--f-hand);color:var(--pen);white-space:nowrap}
+.fav svg,.dvart svg{display:block;width:100%;height:auto}
+.fav{width:100%;filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))}
+.dvart{width:100%;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25))}
+.dvart svg{animation:dvfloat 3.6s ease-in-out infinite}
+.dvart.power .visor{animation:visor 1.4s ease-in-out infinite}
+.dvart.hurt svg{animation:dvhurt .6s ease-in-out 3}
+.dvart.gone{opacity:.45;filter:grayscale(1)}
+@keyframes dvfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes visor{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes dvhurt{0%,100%{transform:translateX(0) rotate(0)}30%{transform:translateX(-5px) rotate(-5deg)}60%{transform:translateX(4px) rotate(3deg)}}
+.move{display:flex;flex-direction:column;gap:6px;text-align:center;min-width:0}
+.mk-k{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.mv{font:400 clamp(1rem,1.6vw,1.3rem)/1.3 var(--f-display);color:var(--ink);text-wrap:balance}
+.mv.crit,.mv.ultra{font-size:clamp(1.15rem,2vw,1.55rem)}
+.mv.jh.crit,.mv.jh.ultra{color:color-mix(in srgb,var(--b1) 75%,var(--ink))}
+.mv.dv.crit,.mv.dv.ultra{color:color-mix(in srgb,var(--b3) 80%,var(--ink))}
+.arena.impact{animation:impact .7s ease-out 1}
+.arena.pulse{animation:pulseA .6s ease-out 1}
+@keyframes impact{0%{transform:translate(0)}10%{transform:translate(-8px,2px)}20%{transform:translate(7px,-3px)}30%{transform:translate(-6px,3px)}40%{transform:translate(5px,-2px)}55%{transform:translate(-3px,1px)}70%{transform:translate(2px,0)}100%{transform:translate(0)}}
+@keyframes pulseA{0%{transform:scale(1)}40%{transform:scale(1.015)}100%{transform:scale(1)}}
+.dvart{--dv-rim:#3a3f47}
+:root[data-theme="dark"] .dvart{--dv-rim:#8a929b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dvart{--dv-rim:#8a929b}}
+.dvquote{--qbg:#1b1d22;--qfg:#f1ede4}
+:root[data-theme="dark"] .dvquote{--qbg:#ece7dc;--qfg:#1b1d22}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dvquote{--qbg:#ece7dc;--qfg:#1b1d22}}
+.dvquote{position:relative;margin:12px 0 0 auto;max-width:min(420px,92%);padding:10px 14px;border-radius:14px 4px 14px 14px;background:var(--qbg);color:var(--qfg);
+  font:italic 400 1rem/1.4 var(--f-display)}
+.dvquote::before{content:"";position:absolute;top:-8px;right:clamp(30px,6vw,52px);border:8px solid transparent;border-top:0;border-bottom-color:var(--qbg)}
+.power{margin-top:16px}
+.pw-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:.86rem;color:var(--muted);margin-bottom:6px}
+.pw-top b{font:400 1.5rem/1 var(--f-display);color:var(--ink)} .pw-top b small{font:500 .82rem var(--f-body);color:var(--muted)}
+.pw-bar{position:relative;display:flex;gap:3px;height:12px}
+.pw-bar i{border-radius:4px;opacity:.85}
+.pw-mk{position:absolute;top:-5px;width:4px;height:22px;margin-left:-2px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--card)}
+.pw-lbl{display:grid;grid-template-columns:55fr 95fr 100fr 50fr;font-size:.75rem;color:var(--faint);margin-top:5px}
+.bossgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(16px,3vw,28px);margin-top:20px}
+@media (max-width:640px){.bossgrid{grid-template-columns:minmax(0,1fr)}}
+.bstats{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;align-content:start}
+.bs{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bs .k{font-size:.78rem;color:var(--muted)}
+.bs .v{font:400 1.1rem/1.3 var(--f-display);color:var(--ink);font-variant-numeric:tabular-nums}
+.bs .v small{font:500 .75rem var(--f-body);color:var(--faint)}
+.bs .jh{color:color-mix(in srgb,var(--b1) 70%,var(--ink))} .bs .dv{color:color-mix(in srgb,var(--b3) 80%,var(--ink))}
+.blog{list-style:none;margin:0;padding:0}
+.blog li{display:grid;grid-template-columns:4.6em 1.5em minmax(0,1fr);gap:6px;align-items:baseline;padding:6px 0;border-top:1px dashed var(--line);font-size:.88rem;line-height:1.4}
+.blog li:first-child{border-top:0}
+.blog time{font-weight:600;color:var(--muted);font-size:.78rem;font-variant-numeric:tabular-nums}
+.blog .ci{text-align:center} .blog p{margin:0}
+.blog li.jh p{color:color-mix(in srgb,var(--b1) 55%,var(--ink))} .blog li.dv p{color:color-mix(in srgb,var(--b3) 60%,var(--ink))}
 /* region battle */
 .tease{display:flex;align-items:center;gap:8px;width:100%;margin-top:10px;padding:9px 12px;border:1px dashed var(--line);border-radius:10px;
   background:transparent;color:var(--ink);font:500 .9rem/1.3 var(--f-body);text-align:left;cursor:pointer}
@@ -488,10 +543,11 @@ footer a{color:var(--ink)}
   .wrap > .loading, .wrap > .status, .wrap > footer, .wrap > .sect:has(#hm){grid-column:1/-1}
   .wrap > .sect{min-width:0}
   .wrap > .loading{order:0} .wrap > .status{order:1}
-  .wrap > .sect:has(#daily){order:2}    .wrap > #battle{order:3}       /* Day by day 60 | Clean air league 40 */
-  .wrap > .sect:has(#hm){order:4}                                      /* Where it was worst: full width */
-  .wrap > #windSect{order:5}            .wrap > .sect:has(#diurnal){order:6}   /* Follow the wind 60 | When it peaks 40 */
-  .wrap > footer{order:7}
+  .wrap > #bossSect{order:2}            .wrap > #battle{order:3}                 /* Season boss 60 | Clean air league 40 */
+  .wrap > .sect:has(#daily){order:4}    .wrap > .sect:has(#diurnal){order:5}     /* Day by day 60 | When it peaks 40 */
+  .wrap > .sect:has(#hm){order:6}                                                /* Where it was worst: full width */
+  .wrap > #windSect{order:7;grid-column:1/-1}                                    /* Follow the wind: full width */
+  .wrap > footer{order:8}
   .league,.bt-rules,.comm{max-width:none}
   .wrap > .sect:has(#daily), .wrap > .sect:has(#diurnal){display:flex;flex-direction:column}
   #daily, #diurnal{flex:1 1 auto;min-height:0}
@@ -509,7 +565,7 @@ footer a{color:var(--ink)}
 <div class="stick" id="stick">
   <div class="st-v" id="stickV" aria-hidden="true"></div>
   <nav class="st-nav" aria-label="Jump to a section">
-    <a href="#mapCard">Map</a><a href="#nowCard">How bad</a><a href="#battle">League</a><a href="#daySect">Trends</a><a href="#windSect">Wind</a>
+    <a href="#mapCard">Map</a><a href="#nowCard">How bad</a><a href="#bossSect">Boss</a><a href="#battle">League</a><a href="#daySect">Trends</a><a href="#windSect">Wind</a>
   </nav>
 </div>
 
@@ -586,6 +642,26 @@ footer a{color:var(--ink)}
       </div>
       <div class="facts card"><span class="kicker facts-k">By the numbers</span><div class="facts-grid" id="facts"></div></div>
     </div>
+  </section>
+
+  <section class="sect dots" id="bossSect" hidden>
+    <div class="sec-head">
+      <span class="kicker">😈 Season boss: Darth Vapour</span>
+      <h2 id="bossHead">Season boss</h2>
+      <p class="sub" id="bossSub"></p>
+    </div>
+    <div class="arena" id="arena">
+      <div class="fighter"><div class="fav" id="bossJH"></div><span class="fname">JH</span></div>
+      <div class="move" id="bossMove"></div>
+      <div class="fighter"><div class="dvart" id="bossDV"></div><span class="fname">Darth Vapour</span></div>
+    </div>
+    <p class="dvquote" id="bossQuote"></p>
+    <div class="power" id="bossPower"></div>
+    <div class="bossgrid">
+      <div class="bstats" id="bossStats"></div>
+      <div><h3 class="minihead">Recent rounds</h3><ol class="blog" id="bossLog"></ol></div>
+    </div>
+    <p class="sub small bt-rules">Hit size by hourly change in island PM2.5: 👊 Jab 5–14 · 💥 Hit 15–29 · ⚡ Critical 30–49 · ☄️ Ultra 50+. Dropping a band breaks a shield. Darth Vapour only retreats after 72 hours in a row of Normal air.</p>
   </section>
 
   <section class="sect tape-r" id="battle">
@@ -1688,6 +1764,121 @@ function drawCommentary(){
   more.onclick = ()=>{ COMM_OPEN=!COMM_OPEN; drawCommentary(); };
 }
 
+/* ---------- season boss: Darth Vapour ----------
+   No health bar (nobody knows when the haze ends). Instead, every hour is a round:
+   island PM2.5 falls  -> JH lands a hit;  island PM2.5 rises -> Darth Vapour strikes.
+   The size of the hourly move sets the hit tier, so sharp moves feel big because they are rare.
+   Darth only "retreats" after 72 hours in a row of Normal air (island average 55 or less). */
+const TIERS = [ {min:50, k:"ultra", icon:"☄️", name:"ULTRA"}, {min:30, k:"crit", icon:"⚡", name:"CRITICAL"},
+                {min:15, k:"hit", icon:"💥", name:"Hit"}, {min:5, k:"jab", icon:"👊", name:"Jab"} ];
+const tierOf = d => TIERS.find(t => Math.abs(d) >= t.min) || null;
+const DVQ = {
+  power: ["I am your father... of all coughs.", "Luke, I am your fog-ther.", "Join the dark side. We have no visibility.",
+          "You don't know the power of the haze side.", "Breathe in. That's me.", "I find your lack of masks disturbing.",
+          "The Force is weak with your air purifier.", "Impressive. Most impressive. But you are not out of the woods. They're on fire.",
+          "Your windows are shut? How quaint.", "Every breath you take, I'll be watching you."],
+  hurt:  ["Noooo! A breeze?!", "This is not the wind I was looking for.", "You were the chosen one! You were supposed to stay indoors!",
+          "A minor setback. The Empire of Smog will strike back.", "Curse this sea breeze.", "I've been weakened... temporarily.",
+          "Who turned on the giant fan?", "That rain cloud was not in the plan."],
+  idle:  ["I sense hesitation in the wind.", "Patience. The dry season is long.", "Your lack of rain amuses me.",
+          "We are at a standoff, little masked one.", "Hhhhh... kshhh... (heavy breathing)", "I can wait. The fires can't."],
+  stun:  ["This clean air... it burns!", "I'll be back once the wind turns.", "Enjoy it. I'm only regrouping."],
+  gone:  ["This isn't over. See you next dry season.", "I will return... when the fires do."]
+};
+const pickQ = (pool, seed) => pool[hash(seed) % pool.length];
+// one "round" per pair of back-to-back hours
+const rounds = [];
+for(let i=1;i<hours.length;i++){
+  if(new Date(hours[i].t)-new Date(hours[i-1].t)!==36e5) continue;
+  const d = Math.round(hours[i].avg - hours[i-1].avg);
+  rounds.push({i, t:hours[i].t, h:hours[i].h, d, a:bandIx(hours[i-1].avg), b:bandIx(hours[i].avg), tier:tierOf(d)});
+}
+// combos: 3+ scoring rounds in a row the same way
+rounds.forEach((r,k)=>{ const p=rounds[k-1]; r.combo = (r.tier && p && p.tier && Math.sign(p.d)===Math.sign(r.d)) ? p.combo+1 : (r.tier?1:0); });
+function moveText(r){
+  if(!r.tier) return {txt:`Standoff. Both sides catch their breath (${r.d>0?"+":""}${r.d}).`, side:"none"};
+  const jh = r.d < 0, n = Math.abs(r.d), T = r.tier.k;
+  const base = jh ? {jab:`JH jabs! Darth Vapour loses ${n}.`, hit:`JH lands a solid hit: −${n}.`, crit:`CRITICAL! JH lands a ${n}-point blow.`, ultra:`ULTRA! JH smashes Darth Vapour for ${n}!`}[T]
+                  : {jab:`Darth Vapour jabs back: +${n}.`, hit:`Darth Vapour strikes: +${n}.`, crit:`CRITICAL! Darth Vapour hits for ${n}.`, ultra:`ULTRA! Darth Vapour unleashes +${n}!`}[T];
+  const extra = [r.combo>=3 ? `COMBO ×${r.combo}!` : "",
+    r.b<r.a ? `🛡️ ${BANDS[r.a].label} shield broken!` : r.b>r.a ? `Darth Vapour powers up to ${BANDS[r.b].label}!` : ""].filter(Boolean).join(" ");
+  return {txt: base + (extra?" "+extra:""), side: jh?"jh":"dv"};
+}
+// season numbers
+const dmgJH = rounds.filter(r=>r.d<0).reduce((s,r)=>s-r.d,0), dmgDV = rounds.filter(r=>r.d>0).reduce((s,r)=>s+r.d,0);
+const bigJH = rounds.reduce((a,r)=>r.d<(a?a.d:0)?r:a,null), bigDV = rounds.reduce((a,r)=>r.d>(a?a.d:0)?r:a,null);
+const critJH = rounds.filter(r=>r.d<=-30).length, critDV = rounds.filter(r=>r.d>=30).length;
+let normalRun = 0; for(let i=hours.length-1;i>=0 && hours[i].avg<=55;i--) normalRun++;
+const firstHaze = hours.findIndex(h=>h.avg>55);                   // Darth arrives with the first hazy hour
+const stuns = firstHaze<0 ? 0 : hours.filter((h,i)=>i>firstHaze && h.avg<=55 && hours[i-1].avg>55).length;
+const retreated = normalRun >= 72;
+const dayNo = days.length;
+
+function darthSVG(state){            // state: "power" | "hurt" | "idle" | "gone"
+  const eye = state==="hurt" ? "#a33a3a" : state==="gone" ? "#555" : "#ff3b3b";
+  return `<svg viewBox="0 0 140 124" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><filter id="dvGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${state==="power"?2.6:1.4}" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <g class="wisps" fill="none" stroke="#9aa3a8" stroke-width="3" stroke-linecap="round" opacity=".55">
+      <path d="M58 16 Q52 8 58 2"/><path d="M74 14 Q80 6 74 0"/><path d="M90 20 Q98 12 94 5"/></g>
+    <g class="cloud">
+      <circle cx="28" cy="98" r="20" fill="#7f888e"/><circle cx="112" cy="98" r="20" fill="#7f888e"/>
+      <circle cx="50" cy="106" r="22" fill="#8f989e"/><circle cx="90" cy="106" r="22" fill="#8f989e"/><circle cx="70" cy="100" r="24" fill="#9aa3a8"/>
+      <circle cx="40" cy="112" r="14" fill="#6c757b"/><circle cx="100" cy="112" r="14" fill="#6c757b"/></g>
+    <g class="helmet">
+      <path d="M36 64 Q33 22 70 18 Q107 22 104 64 L111 84 Q98 78 90 86 L50 86 Q42 78 29 84 Z" fill="#1b1d22" stroke="var(--dv-rim)" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M48 32 Q70 22 92 32" stroke="#3b4048" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path d="M70 21 L70 46" stroke="#33373e" stroke-width="2"/>
+      <path d="M48 52 L92 52 L85 70 L70 80 L55 70 Z" fill="#2a2e35"/>
+      <g filter="url(#dvGlow)" fill="${eye}" class="visor"><path d="M51 54 L67 56.5 L65 63 L54 62 Z"/><path d="M89 54 L73 56.5 L75 63 L86 62 Z"/></g>
+      <path d="M62 69 L78 69 L70 81 Z" fill="#3d434c"/>
+      <path d="M64.5 71.5 L75.5 71.5 M66 74.5 L74 74.5 M67.5 77.5 L72.5 77.5" stroke="#6b737c" stroke-width="1.2"/>
+      <path d="M70 56 L70 68" stroke="#3b4048" stroke-width="1.6"/>
+      ${state==="hurt" ? `<g stroke="#f6c343" stroke-width="2.4" stroke-linecap="round"><path d="M112 34 l8 -6 M114 44 l10 0 M110 24 l5 -8"/></g>` : ""}
+    </g></svg>`;
+}
+let BOSS_SHOWN = "";
+function drawBoss(){
+  const box=$("bossSect"); if(!box || !rounds.length){ if(box) box.hidden=true; return; }
+  box.hidden=false;
+  const last = rounds[rounds.length-1], mv = moveText(last), now = hours[hours.length-1];
+  const today = rounds.filter(r=>r.t.slice(0,10)===now.d);
+  const wJH = today.filter(r=>r.tier && r.d<0).length, wDV = today.filter(r=>r.tier && r.d>0).length;
+  const mom = rounds.slice(-6).reduce((s,r)=>s+r.d,0);
+  const state = retreated ? "gone" : now.avg<=55 ? "idle" : mv.side==="jh" ? "hurt" : mv.side==="dv" ? "power" : "idle";
+  $("bossHead").textContent = retreated ? "Darth Vapour has retreated... for now"
+    : now.avg<=55 ? `Darth Vapour is stunned. ${Math.max(0,72-normalRun)}h of Normal air to send him packing`
+    : wDV>wJH ? `Darth Vapour is winning today, ${wDV}–${wJH}` : wJH>wDV ? `JH is fighting back today, ${wJH}–${wDV}` : `Dead even today, ${wJH}–${wDV}`;
+  $("bossSub").textContent = `Day ${dayNo} of the haze season. Every hour is a round: when island PM2.5 falls, JH lands a hit. When it rises, Darth Vapour strikes. Bigger moves hit harder.`;
+  const lvl = Math.max(0,bandIx(now.avg));
+  $("bossJH").style.setProperty("--mbg", `var(${BANDS[lvl].soft})`);
+  $("bossJH").innerHTML = avatarSVG(lvl).replace(/avaClip/g,"avaClipB");
+  $("bossDV").innerHTML = darthSVG(state);
+  $("bossDV").className = "dvart " + state;
+  const pool = retreated ? DVQ.gone : now.avg<=55 ? DVQ.stun : state==="hurt" ? DVQ.hurt : state==="power" ? DVQ.power : DVQ.idle;
+  $("bossQuote").textContent = "“" + pickQ(pool, last.t + state) + "”";
+  $("bossMove").innerHTML = `<span class="mk-k">${fmtHour(last.h)} round</span>
+    <b class="mv ${mv.side} ${last.tier?last.tier.k:"none"}">${last.tier?last.tier.icon+" ":""}${mv.txt}</b>`;
+  // power meter: island PM2.5 now, on the NEA band scale (open-ended, no "full" bar needed)
+  const MAX=300, pos=Math.min(now.avg,MAX)/MAX*100;
+  $("bossPower").innerHTML = `<div class="pw-top"><span>Darth Vapour's power</span><b>${Math.round(now.avg)}<small> · ${BANDS[lvl].label} tier</small></b></div>
+    <div class="pw-bar">${[[0,55],[55,150],[150,250],[250,MAX]].map(([a,b],i)=>`<i style="flex:${b-a};background:var(${BANDS[i].c})"></i>`).join("")}<span class="pw-mk" style="left:${pos}%"></span></div>
+    <div class="pw-lbl"><span>Normal</span><span>Elevated</span><span>High</span><span>Very high</span></div>`;
+  const fmtR = r => r ? `${Math.abs(r.d)} <small>${fmtDay(r.t.slice(0,10))}, ${fmtHour(r.h)}</small>` : "–";
+  $("bossStats").innerHTML = [
+    {k:"Season damage", v:`<span class="jh">JH ${dmgJH}</span> · <span class="dv">Darth ${dmgDV}</span>`},
+    {k:"Biggest hit by JH", v:fmtR(bigJH)}, {k:"Biggest hit by Darth", v:fmtR(bigDV)},
+    {k:"Critical hits", v:`<span class="jh">JH ${critJH}</span> · <span class="dv">Darth ${critDV}</span>`},
+    {k:"Momentum (last 6h)", v: mom<0 ? `<span class="jh">JH, ${mom}</span>` : mom>0 ? `<span class="dv">Darth, +${mom}</span>` : "Even"},
+    {k:"Times stunned", v:`${stuns} <small>(dropped to Normal)</small>`}
+  ].map(s=>`<div class="bs"><span class="k">${s.k}</span><span class="v">${s.v}</span></div>`).join("");
+  $("bossLog").innerHTML = rounds.filter(r=>r.tier).slice(WIDE.matches ? -10 : -6).reverse().map(r=>{ const m=moveText(r);
+    return `<li class="${m.side}"><time>${r.t.slice(0,10)===now.d?"":fmtDay(r.t.slice(0,10))+" "}${fmtHour(r.h)}</time><span class="ci">${r.tier.icon}</span><p>${m.txt}</p></li>`; }).join("");
+  // impact effect on big hits (once per new hour)
+  const arena=$("arena"); if(BOSS_SHOWN!==last.t){ BOSS_SHOWN=last.t;
+    arena.classList.remove("impact","pulse"); void arena.offsetWidth;
+    if(last.tier && (last.tier.k==="crit" || last.tier.k==="ultra")) arena.classList.add("impact"); else if(last.tier && last.tier.k==="hit") arena.classList.add("pulse"); }
+}
+
 /* ---------- wind: where haze comes from ---------- */
 // Pair each hour's island-average PM2.5 with that hour's wind (direction it blows FROM, speed in km/h).
 const DIRS = ["N","NE","E","SE","S","SW","W","NW"];
@@ -1777,7 +1968,7 @@ function drawSpeed(){
 }
 
 /* ---------- draw ---------- */
-function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); drawBattle(); drawCommentary(); drawRose(); drawSpeed(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
+function drawAll(){ renderNow(cur); syncControls(cur); drawDaily(); drawHeat(); drawDiurnal(); drawBattle(); drawCommentary(); drawBoss(); drawRose(); drawSpeed(); aimTease(); if(LAST_MOOD>=0) setSky(LAST_MOOD); }
 drawAll();
 window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); drawRose(); drawSpeed(); fitHeat(); }; window.__font=()=>renderNow(cur);
 window.__latest=last.t;
