@@ -926,7 +926,7 @@ function initMap(){
   // Sea backdrop + inset covers. They live inside the tile pane, so they get the same colour filter as the tiles:
   //  - the backdrop fills spots OneMap has no tiles for (they showed as black/white boxes);
   //  - the covers hide OneMap's "INSET · Not to scale · Pedra Branca" box, which its tiles draw in the sea
-  //    at a different spot on zoom 11 and zoom 12 (and not at all from zoom 13).
+  //    at a different spot on tile zoom 11 and 12 (and not at all from 13).
   const tp = LMAP.getPane("tilePane");
   LMAP.createPane("sea", tp).style.zIndex = 0;
   LMAP.createPane("cover", tp).style.zIndex = 5;
@@ -939,11 +939,9 @@ function initMap(){
          L.rectangle([[1.2510,103.9083],[1.2896,103.9166]], {...opt, renderer:covR}),    // "104° 20' 00" E" label
          L.rectangle([[1.2930,103.9150],[1.2954,104.0020]], {...opt, renderer:covR})]    // thin strip over the frame's top edge (hugs the coast)
   };
-  // Use the zoom of the tile images actually loaded (sharp/retina screens load one level deeper).
-  const showInsetCover = () => { const tz = (TILE && TILE._tileZoom!=null) ? TILE._getZoomForUrl() : Math.max(11, Math.round(LMAP.getZoom()));
-    Object.entries(INSETS).forEach(([z,rs]) => rs.forEach(r => +z===tz ? r.addTo(LMAP) : r.remove())); };
-  window.__insetCover = showInsetCover;
-  LMAP.on("zoomend", showInsetCover); showInsetCover();
+  // Keep every cover on at all times. While zooming, Leaflet briefly shows images from two zoom levels at once,
+  // so switching covers per level let the inset flash. Both cover areas are open sea at every zoom, so nothing real is hidden.
+  Object.values(INSETS).flat().forEach(r => r.addTo(LMAP));
   fitHome();
   // Touch screens: one finger scrolls the page; two fingers move and zoom the map.
   if(matchMedia("(pointer: coarse)").matches){
@@ -1032,7 +1030,6 @@ function setTiles(){
   TILE_STYLE = style;
   const sea = style==="Night" ? "#003753" : "#d1d1d1";            // OneMap's own sea colour, before our CSS filter
   [...SEA, ...Object.values(INSETS).flat()].forEach(r => r.setStyle({fillColor:sea}));
-  if(window.__insetCover) window.__insetCover();
 }
 function updateMap(hi){
   initMap(); if(!LMAP) return; setTiles(); MAP_I = hi;
