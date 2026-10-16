@@ -409,17 +409,13 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .sec-head{display:flex;flex-direction:column;gap:6px;margin-bottom:22px;max-width:none}
 .chart{position:relative}
 /* season boss */
-.arena{display:grid;grid-template-columns:clamp(64px,10vw,96px) minmax(0,1fr) clamp(88px,13vw,130px);align-items:center;gap:clamp(10px,2vw,18px);
+.arena{display:grid;grid-template-columns:clamp(64px,10vw,96px) minmax(0,1fr) clamp(112px,15vw,170px);align-items:center;gap:clamp(10px,2vw,18px);
   padding:14px;border-radius:14px;background:linear-gradient(90deg,color-mix(in srgb,var(--b1) 10%,transparent),transparent 40%,transparent 60%,color-mix(in srgb,var(--b3) 12%,transparent))}
 .fighter{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
 .fname{font:700 .95rem/1 var(--f-hand);color:var(--pen);white-space:nowrap}
 .fav svg,.dvart svg{display:block;width:100%;height:auto}
 .fav{width:100%;filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))}
 .dvart{width:100%;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25))}
-.dvart svg{animation:dvfloat 3.6s ease-in-out infinite}
-.dvart.power .visor{animation:visor 1.4s ease-in-out infinite}
-.dvart.hurt svg{animation:dvhurt .6s ease-in-out 3}
-.dvart.gone{opacity:.45;filter:grayscale(1)}
 @keyframes dvfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes visor{0%,100%{opacity:1}50%{opacity:.55}}
 @keyframes dvhurt{0%,100%{transform:translateX(0) rotate(0)}30%{transform:translateX(-5px) rotate(-5deg)}60%{transform:translateX(4px) rotate(3deg)}}
@@ -463,6 +459,66 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .blog time{font-weight:600;color:var(--muted);font-size:.78rem;font-variant-numeric:tabular-nums}
 .blog .ci{text-align:center} .blog p{margin:0}
 .blog li.jh p{color:color-mix(in srgb,var(--b1) 55%,var(--ink))} .blog li.dv p{color:color-mix(in srgb,var(--b3) 60%,var(--ink))}
+/* Darth Vapour animation. Each moving part spins/scales around its own pivot (set by a wrapper translate). */
+.dvart{cursor:pointer;position:relative}
+.fav{cursor:pointer}
+.fav:focus-visible,.dvart:focus-visible{outline:2px solid var(--pen);outline-offset:4px;border-radius:12px}
+.dvart svg{overflow:visible;transform-origin:62% 100%;transition:transform .6s cubic-bezier(.3,1.4,.5,1)}
+.dvart.t0 svg{transform:scale(.68)} .dvart.t2 svg{transform:scale(1.1)} .dvart.t3 svg{transform:scale(1.22)}
+.dv-body{animation:dvbreathe 4s ease-in-out infinite}
+@keyframes dvbreathe{0%,100%{transform:scale(1,1)}45%{transform:scale(1.045,1.06)}}
+.dv-puff{opacity:0;animation:dvpuff 4s ease-out infinite}
+@keyframes dvpuff{0%,52%{opacity:0;transform:translate(0,0)}62%{opacity:.9}100%{opacity:0;transform:translate(16px,-14px)}}
+.dv-eyes{animation:dvblink 5.5s infinite}
+@keyframes dvblink{0%,94%,100%{transform:scaleY(1)}96.5%{transform:scaleY(.08)}}
+.dv-aura{animation:dvaura 2.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes dvaura{0%,100%{opacity:.7;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+.dv-bolt{opacity:0;animation:dvbolt 3.2s steps(1) infinite}
+@keyframes dvbolt{0%,70%,76%,100%{opacity:0}72%,74%{opacity:1}}
+.dvart.atk .visor{animation:visor 1.2s ease-in-out infinite}
+/* saber */
+.dv-saber{transform:rotate(-12deg)}
+.dv-blade{animation:dvhum 1.6s ease-in-out infinite}
+@keyframes dvhum{0%,100%{opacity:1}50%{opacity:.82}}
+.dvart.atk .dv-saber{animation:dvswing var(--sw,1.7s) cubic-bezier(.55,0,.35,1) infinite}
+@keyframes dvswing{0%,100%{transform:rotate(18deg)}42%{transform:rotate(-98deg)}52%{transform:rotate(-86deg)}}
+.dvart.droop .dv-saber{transform:rotate(-158deg)}
+.dvart.droop .dv-blade{animation:dvfizz .9s steps(2) infinite}
+@keyframes dvfizz{0%{opacity:1;transform:scaleY(1)}50%{opacity:.45;transform:scaleY(.82)}100%{opacity:.85;transform:scaleY(.94)}}
+.dv-spark{animation:dvspark .5s steps(2) infinite}
+@keyframes dvspark{0%{opacity:1}50%{opacity:.2}}
+/* JH flinches with each big swing */
+.fav.flinch{animation:jhflinch var(--sw,1.1s) ease-in-out infinite}
+@keyframes jhflinch{0%,35%,70%,100%{transform:none}45%{transform:translateX(-5px) rotate(-6deg)}}
+/* stunned: crooked helmet, orbiting stars, white flag */
+.dvart.stun .dv-head{transform:rotate(-11deg)}
+.dv-stars{animation:dvorbit 1.8s linear infinite}
+@keyframes dvorbit{to{transform:rotate(360deg)}}
+.dv-flag{transform-box:fill-box;transform-origin:left center;animation:dvflag 1s ease-in-out infinite}
+@keyframes dvflag{0%,100%{transform:skewY(0)}50%{transform:skewY(-10deg) scaleX(.92)}}
+/* bored: sips kopi, then checks his watch */
+.dv-cup{animation:dvsip 8s ease-in-out infinite}
+@keyframes dvsip{0%,8%{transform:translate(0,0) rotate(0);opacity:1}22%,34%{transform:translate(-30px,-22px) rotate(-12deg);opacity:1}46%{transform:translate(0,0);opacity:1}50%,100%{opacity:0}}
+.dv-wrist{opacity:0;animation:dvwatch 8s ease-in-out infinite}
+@keyframes dvwatch{0%,52%{opacity:0;transform:translate(0,8px)}60%,86%{opacity:1;transform:translate(-8px,-12px)}94%,100%{opacity:0;transform:translate(0,8px)}}
+.dvart.bored .dv-look{transition:transform .4s}
+/* retreat: drifts away and fades */
+.dvart.gone svg{animation:dvleave 3.5s ease-in forwards}
+@keyframes dvleave{to{transform:translate(70%,-12%) scale(.6);opacity:0}}
+.dv-back{font:700 .95rem/1.2 var(--f-hand);color:var(--muted);text-align:center}
+/* tap: force push / fan swat */
+.dvart.force svg{animation:dvforce .75s ease-out}
+@keyframes dvforce{0%{transform:none}30%{transform:translateX(-10px) scale(1.06)}100%{transform:none}}
+.fav.pushed{animation:jhpushed .75s ease-out}
+@keyframes jhpushed{0%{transform:none}30%{transform:translateX(-14px) rotate(-10deg)}100%{transform:none}}
+.fighter{position:relative}
+.fan{position:absolute;width:34%;right:-14%;top:30%;opacity:0;pointer-events:none;transform-origin:50% 100%}
+.fighter.swat .fan{animation:jhfan .75s ease-out}
+@keyframes jhfan{0%{opacity:1;transform:rotate(-50deg)}30%{transform:rotate(40deg)}60%{transform:rotate(-20deg)}85%{opacity:1}100%{opacity:0;transform:rotate(0)}}
+.dvart.swatted svg{animation:dvswatted .75s ease-out}
+@keyframes dvswatted{0%{transform:none}25%{transform:translateX(8px) rotate(8deg)}55%{transform:translateX(-4px) rotate(-4deg)}100%{transform:none}}
+.dvquote.pop{animation:qpop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes qpop{0%{transform:scale(.92)}100%{transform:scale(1)}}
 /* region battle */
 .tease{display:flex;align-items:center;gap:8px;width:100%;margin-top:10px;padding:9px 12px;border:1px dashed var(--line);border-radius:10px;
   background:transparent;color:var(--ink);font:500 .9rem/1.3 var(--f-body);text-align:left;cursor:pointer}
@@ -655,9 +711,12 @@ footer a{color:var(--ink)}
       <p class="sub" id="bossSub"></p>
     </div>
     <div class="arena" id="arena">
-      <div class="fighter"><div class="fav" id="bossJH"></div><span class="fname">JH</span></div>
+      <div class="fighter"><div class="fav" id="bossJH" role="button" tabindex="0" aria-label="Tap JH to swat back at Darth Vapour"></div>
+        <svg class="fan" viewBox="0 0 40 30" aria-hidden="true"><path d="M20 28 L2 10 A24 24 0 0 1 38 10 Z" fill="#8fd3ff" stroke="#2b6f9e" stroke-width="1.4"/><path d="M20 28 L9 5 M20 28 L20 2 M20 28 L31 5" stroke="#2b6f9e" stroke-width="1.1"/><rect x="18.4" y="26" width="3.2" height="4" rx="1" fill="#8a6d4b"/></svg>
+        <span class="fname">JH</span></div>
       <div class="move" id="bossMove"></div>
-      <div class="fighter"><div class="dvart" id="bossDV"></div><span class="fname">Darth Vapour</span></div>
+      <div class="fighter"><div class="dvart" id="bossDV" role="button" tabindex="0" aria-label="Tap Darth Vapour to hear him"></div><span class="fname">Darth Vapour</span>
+        <span class="dv-back" id="dvBack" hidden>“I'll be back.”</span></div>
     </div>
     <p class="dvquote" id="bossQuote"></p>
     <div class="power" id="bossPower"></div>
@@ -1842,29 +1901,87 @@ const stuns = firstHaze<0 ? 0 : hours.filter((h,i)=>i>firstHaze && h.avg<=55 && 
 const retreated = normalRun >= 72;
 const dayNo = days.length;
 
-function darthSVG(state){            // state: "power" | "hurt" | "idle" | "gone"
-  const eye = state==="hurt" ? "#a33a3a" : state==="gone" ? "#555" : "#ff3b3b";
-  return `<svg viewBox="0 0 140 124" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <defs><filter id="dvGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${state==="power"?2.6:1.4}" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-    <g class="wisps" fill="none" stroke="#9aa3a8" stroke-width="3" stroke-linecap="round" opacity=".55">
-      <path d="M58 16 Q52 8 58 2"/><path d="M74 14 Q80 6 74 0"/><path d="M90 20 Q98 12 94 5"/></g>
-    <g class="cloud">
-      <circle cx="28" cy="98" r="20" fill="#7f888e"/><circle cx="112" cy="98" r="20" fill="#7f888e"/>
-      <circle cx="50" cy="106" r="22" fill="#8f989e"/><circle cx="90" cy="106" r="22" fill="#8f989e"/><circle cx="70" cy="100" r="24" fill="#9aa3a8"/>
-      <circle cx="40" cy="112" r="14" fill="#6c757b"/><circle cx="100" cy="112" r="14" fill="#6c757b"/></g>
-    <g class="helmet">
-      <path d="M36 64 Q33 22 70 18 Q107 22 104 64 L111 84 Q98 78 90 86 L50 86 Q42 78 29 84 Z" fill="#1b1d22" stroke="var(--dv-rim)" stroke-width="1.6" stroke-linejoin="round"/>
-      <path d="M48 32 Q70 22 92 32" stroke="#3b4048" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-      <path d="M70 21 L70 46" stroke="#33373e" stroke-width="2"/>
-      <path d="M48 52 L92 52 L85 70 L70 80 L55 70 Z" fill="#2a2e35"/>
-      <g filter="url(#dvGlow)" fill="${eye}" class="visor"><path d="M51 54 L67 56.5 L65 63 L54 62 Z"/><path d="M89 54 L73 56.5 L75 63 L86 62 Z"/></g>
-      <path d="M62 69 L78 69 L70 81 Z" fill="#3d434c"/>
-      <path d="M64.5 71.5 L75.5 71.5 M66 74.5 L74 74.5 M67.5 77.5 L72.5 77.5" stroke="#6b737c" stroke-width="1.2"/>
-      <path d="M70 56 L70 68" stroke="#3b4048" stroke-width="1.6"/>
-      ${state==="hurt" ? `<g stroke="#f6c343" stroke-width="2.4" stroke-linecap="round"><path d="M112 34 l8 -6 M114 44 l10 0 M110 24 l5 -8"/></g>` : ""}
+function darthSVG(state, tier){       // state: atk | droop | bored | stun | gone ; tier: band 0–3
+  const eye = state==="droop" ? "#c44" : state==="stun" ? "#a55" : "#ff3b3b";
+  const storm = tier>=3 ? `<g class="dv-bolt" stroke="#ffe066" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M36 92 l6 -8 l-4 0 l6 -9"/><path d="M104 96 l-5 -7 l4 -1 l-5 -8"/></g>` : "";
+  const aura = tier>=2 ? `<circle class="dv-aura" cx="70" cy="70" r="${tier>=3?66:58}" fill="url(#dvAura)"/>` : "";
+  // a wrapper g holds each moving part's pivot (translate), the inner g gets the CSS animation around its own (0,0)
+  const saber = (state==="atk"||state==="droop"||state==="bored") ? `
+    <g transform="translate(14 94)"><g class="dv-saber">
+      <rect x="-3" y="-2" width="6" height="15" rx="2" fill="#2b2f36" stroke="#8a929b" stroke-width="1"/>
+      <rect x="-3.6" y="2" width="7.2" height="2.2" fill="#8a929b"/>
+      <g class="dv-blade" filter="url(#dvGlow2)"><rect x="-2.6" y="-72" width="5.2" height="70" rx="2.6" fill="#ff3434"/></g>
+      <rect x="-.9" y="-70" width="1.8" height="66" rx=".9" fill="#ffd9d9"/>
+      ${state==="droop" ? `<g class="dv-spark" fill="#ffd166"><circle cx="0" cy="-74" r="1.6"/><circle cx="4" cy="-68" r="1.2"/><circle cx="-4" cy="-64" r="1"/></g>` : ""}
+    </g></g>` : "";
+  const flag = state==="stun" ? `<g transform="translate(16 96)"><path d="M0 0 L0 -40" stroke="#8a6d4b" stroke-width="2.2" stroke-linecap="round"/>
+      <g class="dv-flag"><path d="M0 -40 Q12 -44 22 -38 Q12 -32 0 -28 Z" fill="#fff" stroke="#c9c9c9" stroke-width="1"/></g></g>` : "";
+  const stars = state==="stun" ? `<g transform="translate(70 16) scale(1 .38)"><g class="dv-stars" fill="#f6c343">
+      <path d="M26 0 l2.4 5 5.4.6 -4 3.7 1 5.3 -4.8-2.6 -4.8 2.6 1-5.3 -4-3.7 5.4-.6z" transform="translate(0 -6)"/>
+      <path d="M-13 22 l2 4.2 4.6.5 -3.4 3.1 .9 4.5 -4.1-2.2 -4.1 2.2 .9-4.5 -3.4-3.1 4.6-.5z" transform="translate(0 -6)"/>
+      <path d="M-13 -22 l2 4.2 4.6.5 -3.4 3.1 .9 4.5 -4.1-2.2 -4.1 2.2 .9-4.5 -3.4-3.1 4.6-.5z" transform="translate(0 -6)"/></g></g>` : "";
+  const bored = state==="bored" ? `
+    <g class="dv-kopi" transform="translate(104 98)"><g class="dv-cup">
+      <path d="M-6 -12 L6 -12 L4.5 2 L-4.5 2 Z" fill="#fff8ee" stroke="#b08968" stroke-width="1.2"/>
+      <rect x="-6" y="-8" width="12" height="4" fill="#9c6644"/><path d="M2 -12 L8 -26" stroke="#e76f51" stroke-width="1.6" stroke-linecap="round"/></g></g>
+    <g class="dv-watch" transform="translate(110 94)"><g class="dv-wrist">
+      <circle cx="0" cy="-8" r="8" fill="#9aa3a8"/><circle cx="0" cy="-10" r="4.4" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+      <path d="M0 -10 L0 -12.6 M0 -10 L1.8 -9" stroke="#2b2f36" stroke-width="1" stroke-linecap="round"/></g></g>` : "";
+  return `<svg viewBox="0 0 194 152" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" overflow="visible">
+    <defs>
+      <filter id="dvGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="${tier>=2?2.8:1.6}" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="dvGlow2" x="-200%" y="-20%" width="500%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <radialGradient id="dvAura"><stop offset="0" stop-color="#ff3b3b" stop-opacity=".32"/><stop offset="1" stop-color="#ff3b3b" stop-opacity="0"/></radialGradient>
+    </defs>
+    <g transform="translate(44 14)">
+      ${aura}
+      <g class="dv-wisps" fill="none" stroke="#9aa3a8" stroke-width="3" stroke-linecap="round" opacity=".55">
+        <path d="M58 16 Q52 8 58 2"/><path d="M74 14 Q80 6 74 0"/><path d="M90 20 Q98 12 94 5"/></g>
+      <g transform="translate(70 124)"><g class="dv-body"><g transform="translate(-70 -124)">
+        <circle cx="28" cy="98" r="20" fill="${tier>=3?"#5e666c":"#7f888e"}"/><circle cx="112" cy="98" r="20" fill="${tier>=3?"#5e666c":"#7f888e"}"/>
+        <circle cx="50" cy="106" r="22" fill="${tier>=3?"#6c757b":"#8f989e"}"/><circle cx="90" cy="106" r="22" fill="${tier>=3?"#6c757b":"#8f989e"}"/>
+        <circle cx="70" cy="100" r="24" fill="${tier>=3?"#7a838a":"#9aa3a8"}"/>
+        <circle cx="40" cy="112" r="14" fill="#5f686e"/><circle cx="100" cy="112" r="14" fill="#5f686e"/>
+        ${storm}
+      </g></g></g>
+      <g transform="translate(70 86)"><g class="dv-head"><g transform="translate(-70 -86)">
+        <path d="M36 64 Q33 22 70 18 Q107 22 104 64 L111 84 Q98 78 90 86 L50 86 Q42 78 29 84 Z" fill="#1b1d22" stroke="var(--dv-rim)" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M48 32 Q70 22 92 32" stroke="#3b4048" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <path d="M70 21 L70 46" stroke="#33373e" stroke-width="2"/>
+        <path d="M48 52 L92 52 L85 70 L70 80 L55 70 Z" fill="#2a2e35"/>
+        <g class="dv-look"><g transform="translate(70 59)"><g class="dv-eyes"><g transform="translate(-70 -59)">
+          <g filter="url(#dvGlow)" fill="${eye}" class="visor"><path d="M51 54 L67 56.5 L65 63 L54 62 Z"/><path d="M89 54 L73 56.5 L75 63 L86 62 Z"/></g>
+        </g></g></g></g>
+        <path d="M62 69 L78 69 L70 81 Z" fill="#3d434c"/>
+        <path d="M64.5 71.5 L75.5 71.5 M66 74.5 L74 74.5 M67.5 77.5 L72.5 77.5" stroke="#6b737c" stroke-width="1.2"/>
+        <path d="M70 56 L70 68" stroke="#3b4048" stroke-width="1.6"/>
+      </g></g></g>
+      <g transform="translate(80 80)"><g class="dv-puff"><text x="0" y="0" font-size="8" font-style="italic" fill="var(--muted)" font-family="var(--f-body)">kshhh…</text></g></g>
+      ${stars}${saber}${flag}${bored}
     </g></svg>`;
 }
 let BOSS_SHOWN = "";
+// Eyes follow the mouse (or glance at JH on touch screens). Tapping either fighter starts a little scuffle.
+function wireBoss(){
+  if(window.__bossWired) return; window.__bossWired = true;
+  const fine = matchMedia("(hover:hover) and (pointer:fine)").matches;
+  let raf=0, px=0, py=0;
+  const aim = () => { raf=0; const svg=document.querySelector("#bossDV svg"), look=svg && svg.querySelector(".dv-look"); if(!look) return;
+    const r=svg.getBoundingClientRect(), k=r.width/194, ex=r.left+114*k, ey=r.top+73*k;
+    const dx=px-ex, dy=py-ey, L=Math.hypot(dx,dy)||1, f=Math.min(1,L/160);
+    look.setAttribute("transform", `translate(${(dx/L*3.4*f).toFixed(2)} ${(dy/L*2.4*f).toFixed(2)})`); };
+  if(fine) addEventListener("pointermove", e=>{ px=e.clientX; py=e.clientY; if(!raf) raf=requestAnimationFrame(aim); }, {passive:true});
+  else setInterval(()=>{ const j=$("bossJH"); if(!j) return; const b=j.getBoundingClientRect(); px=b.left+b.width/2; py=b.top+b.height/2; aim(); }, 900);
+  const poke = (el, cls, ms) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); clearTimeout(el["_t"+cls]); el["_t"+cls]=setTimeout(()=>el.classList.remove(cls), ms); };
+  const sayQ = t => { const q=$("bossQuote"); q.textContent = "“"+t+"”"; poke(q,"pop",450); };
+  const rnd = a => a[Math.floor(Math.random()*a.length)];
+  const gone = () => $("bossDV").classList.contains("gone");
+  const tapDV = () => { if(gone()) return; sayQ(rnd([...DVQ.power, ...DVQ.idle])); poke($("bossDV"),"force",750); poke($("bossJH"),"pushed",750); };
+  const tapJH = () => { if(gone()) return; sayQ(rnd(DVQ.hurt)); poke($("bossJH").parentElement,"swat",750); poke($("bossDV"),"swatted",750); };
+  [["bossDV",tapDV],["bossJH",tapJH]].forEach(([id,fn])=>{ const el=$(id); el.addEventListener("click", fn);
+    el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fn(); } }); });
+}
 function drawBoss(){
   const box=$("bossSect"); if(!box || !rounds.length){ if(box) box.hidden=true; return; }
   box.hidden=false;
@@ -1872,7 +1989,8 @@ function drawBoss(){
   const today = rounds.filter(r=>r.t.slice(0,10)===now.d);
   const wJH = today.filter(r=>r.tier && r.d<0).length, wDV = today.filter(r=>r.tier && r.d>0).length;
   const mom = rounds.slice(-6).reduce((s,r)=>s+r.d,0);
-  const state = retreated ? "gone" : now.avg<=55 ? "idle" : mv.side==="jh" ? "hurt" : mv.side==="dv" ? "power" : "idle";
+  // what Darth is doing until the next reading
+  const state = retreated ? "gone" : now.avg<=55 ? "stun" : mv.side==="dv" ? "atk" : mv.side==="jh" ? "droop" : "bored";
   $("bossHead").textContent = retreated ? "Darth Vapour has retreated... for now"
     : now.avg<=55 ? `Darth Vapour is stunned. ${Math.max(0,72-normalRun)}h of Normal air to send him packing`
     : wDV>wJH ? `Darth Vapour is winning today, ${wDV}–${wJH}` : wJH>wDV ? `JH is fighting back today, ${wJH}–${wDV}` : `Dead even today, ${wJH}–${wDV}`;
@@ -1880,9 +1998,14 @@ function drawBoss(){
   const lvl = Math.max(0,bandIx(now.avg));
   $("bossJH").style.setProperty("--mbg", `var(${BANDS[lvl].soft})`);
   $("bossJH").innerHTML = avatarSVG(lvl).replace(/avaClip/g,"avaClipB");
-  $("bossDV").innerHTML = darthSVG(state);
-  $("bossDV").className = "dvart " + state;
-  const pool = retreated ? DVQ.gone : now.avg<=55 ? DVQ.stun : state==="hurt" ? DVQ.hurt : state==="power" ? DVQ.power : DVQ.idle;
+  const dv=$("bossDV"), tk = last.tier ? last.tier.k : "none";
+  dv.innerHTML = darthSVG(state, lvl);
+  dv.className = `dvart ${state} t${lvl} ${tk}`;
+  dv.style.setProperty("--sw", {jab:"1.7s", hit:"1.1s", crit:".7s", ultra:".5s"}[tk] || "1.7s");     // swing speed by hit size
+  $("bossJH").classList.toggle("flinch", state==="atk" && (tk==="hit"||tk==="crit"||tk==="ultra"));
+  $("bossJH").style.setProperty("--sw", dv.style.getPropertyValue("--sw"));
+  $("dvBack").hidden = state!=="gone";
+  const pool = DVQ[{gone:"gone", stun:"stun", atk:"power", droop:"hurt", bored:"idle"}[state]];
   $("bossQuote").textContent = "“" + pickQ(pool, last.t + state) + "”";
   $("bossMove").innerHTML = `<span class="mk-k">${fmtHour(last.h)} round</span>
     <b class="mv ${mv.side} ${last.tier?last.tier.k:"none"}">${last.tier?last.tier.icon+" ":""}${mv.txt}</b>`;
@@ -1901,6 +2024,7 @@ function drawBoss(){
   ].map(s=>`<div class="bs"><span class="k">${s.k}</span><span class="v">${s.v}</span></div>`).join("");
   $("bossLog").innerHTML = rounds.filter(r=>r.tier).slice(WIDE.matches ? -10 : -6).reverse().map(r=>{ const m=moveText(r);
     return `<li class="${m.side}"><time>${r.t.slice(0,10)===now.d?"":fmtDay(r.t.slice(0,10))+" "}${fmtHour(r.h)}</time><span class="ci">${r.tier.icon}</span><p>${m.txt}</p></li>`; }).join("");
+  wireBoss();
   // impact effect on big hits (once per new hour)
   const arena=$("arena"); if(BOSS_SHOWN!==last.t){ BOSS_SHOWN=last.t;
     arena.classList.remove("impact","pulse"); void arena.offsetWidth;
