@@ -224,9 +224,9 @@ main{margin-top:clamp(-64px,-5vw,-32px);position:relative}
 .rp h4{font:400 1.05rem/1.2 var(--f-display);margin:0 0 2px}
 .rp .rv{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
 .rp .rv b{font:400 1.6rem/1 var(--f-display)} .rp .rv span{color:var(--muted);font-size:.8rem}
-.rp .tag{display:inline-block;padding:2px 8px;border-radius:999px;font:600 .74rem/1.4 var(--f-body);background:var(--s);color:var(--ink)}
+.rp .tag{display:inline-block;padding:2px 8px;border-radius:999px;font:600 .75rem/1.4 var(--f-body);background:var(--s);color:var(--ink)}
 .rp svg{display:block;width:100%;height:auto;margin:8px 0 4px}
-.rp .cap{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted)}
+.rp .cap{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)}
 .rp p{margin:8px 0 0;font-size:.8rem;color:var(--muted)}
 .maplegend{background:color-mix(in srgb,var(--surface) 92%,transparent);border-radius:8px;padding:8px 10px;
   display:flex;flex-direction:column;gap:5px;font:500 12px/1.2 var(--f-body);color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.15)}
@@ -263,7 +263,7 @@ main{margin-top:clamp(-64px,-5vw,-32px);position:relative}
 .seg button{font:600 .86rem/1 var(--f-body);border:0;background:transparent;color:var(--faint);padding:6px 0;cursor:pointer;border-bottom:2px solid transparent}
 .seg button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
 .hourwrap{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-.ticks{display:flex;justify-content:space-between;font-size:.72rem;color:var(--faint);padding:0 2px}
+.ticks{display:flex;justify-content:space-between;font-size:.75rem;color:var(--faint);padding:0 2px}
 .hourlbl{font:600 1.05rem/1 var(--f-body);font-variant-numeric:tabular-nums;color:var(--ink);min-width:3.4em;text-align:right}
 @media (max-width:600px){.scrub{flex-wrap:wrap}.hourwrap{order:3;flex-basis:100%}.hourlbl{margin-left:auto}}
 input.hour{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer;margin:0}
@@ -286,10 +286,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .gauge .gb .bar{display:block;height:10px;border-radius:3px;opacity:.85;transition:opacity .15s}
 .gauge .gb:hover .bar,.gauge .gb:focus-visible .bar,.gauge .gb.on .bar{opacity:1;box-shadow:0 0 0 2px var(--surface),0 0 0 3px var(--ink)}
 .gauge .gb:focus-visible{outline:none}
-.gauge .gb .nm{font:600 .7rem/1 var(--f-body);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gauge .gb .nm{font:600 .75rem/1 var(--f-body);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gauge .gb:hover .nm,.gauge .gb.on .nm{color:var(--ink)}
 .gauge .mark{position:absolute;top:-5px;pointer-events:none;width:4px;height:20px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--surface);transform:translateX(-50%);transition:left .25s}
-.gauge .lbls{position:relative;height:12px;font-size:.72rem;font-variant-numeric:tabular-nums;color:var(--faint)}
+.gauge .lbls{position:relative;height:12px;font-size:.75rem;font-variant-numeric:tabular-nums;color:var(--faint)}
 .gauge .lbls span{position:absolute;transform:translateX(-50%)}
 .gauge .lbls span:first-child{transform:none}
 .ghint{font-size:.78rem;color:var(--faint)}
@@ -323,6 +323,11 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .nowrap{white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
 /* verdict */
 .verdict{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.verdict:has(.vd.one){grid-template-columns:1fr;gap:8px}
+.vd.one{padding:12px 14px}
+.vd.one b{font-size:1.45rem}
+.vsub{font-size:.84rem;color:var(--muted);margin:0 2px;font-variant-numeric:tabular-nums}
+.vsub b{font-weight:600;color:var(--ink)}
 .vd{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--tint-soft) 55%,var(--card));min-width:0}
 .vd .vk{font-size:.76rem;color:var(--muted)}
 .vd b{display:flex;align-items:center;gap:7px;font:400 1.15rem/1.15 var(--f-display);color:var(--ink)}
@@ -330,7 +335,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .vd b i.dia{border-radius:2px;transform:rotate(45deg)} .vd b i.dt{border-radius:50%}
 .vd small{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
 /* sticky status bar (phones) */
-.stick{position:fixed;left:0;right:0;top:0;z-index:1000;display:none;align-items:center;justify-content:space-between;gap:10px;
+.stick{position:fixed;left:0;right:0;top:0;z-index:1000;display:none;flex-direction:column;align-items:stretch;gap:6px;
   padding:calc(8px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));
   background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-bottom:1px solid var(--line);font-size:.84rem;color:var(--ink);transform:translateY(-110%);transition:transform .25s ease}
@@ -339,7 +344,12 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .stick i{width:8px;height:8px;flex:none}
 .stick i.dia{border-radius:1px;transform:rotate(45deg)} .stick i.dt{border-radius:50%}
 .stick b{font-weight:600}
-@media (max-width:820px){.stick{display:flex}}
+.st-v{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.st-nav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -4px}
+.st-nav::-webkit-scrollbar{display:none}
+.st-nav a{flex:none;padding:4px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:.8rem;font-weight:500;background:var(--surface)}
+.st-nav a.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+@media (max-width:820px){.stick{display:flex} .sect,.card{scroll-margin-top:96px}}
 /* phone: quieter base map, shorter header */
 @media (max-width:600px){
   .leaflet-tile-pane{filter:var(--map-filter) opacity(.7)}
@@ -363,14 +373,14 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .windbox b{display:block;font:600 .86rem/1.15 var(--f-body)}
 .windbox span{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
 /* phones: smaller wind box (must come after the base rules above) */
-@media (max-width:600px){.windbox{padding:5px 9px 5px 5px;gap:6px}.windbox svg{width:26px;height:26px}.windbox b{font-size:.76rem}.windbox span{font-size:.7rem}}
+@media (max-width:600px){.windbox{padding:5px 9px 5px 5px;gap:6px}.windbox svg{width:26px;height:26px}.windbox b{font-size:.76rem}.windbox span{font-size:.75rem}}
 /* grid toggle */
 .gridtabs{display:inline-flex;gap:16px;margin-bottom:14px}
 .gridtabs button{font:600 .9rem/1 var(--f-body);border:0;background:transparent;color:var(--faint);padding:6px 0;cursor:pointer;border-bottom:2px solid transparent}
 .gridtabs button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
 .hm.hours{grid-template-columns:4em repeat(24,minmax(9px,1fr));gap:2px}
 .hm.hours .c{height:clamp(14px,2.4vw,26px);border-radius:2px}
-.hm .hl{font-size:.7rem;color:var(--faint);text-align:center;white-space:nowrap}
+.hm .hl{font-size:.75rem;color:var(--faint);text-align:center;white-space:nowrap}
 .hm .c.empty{background:color-mix(in srgb,var(--ink) 6%,transparent)!important}
 
 /* ---------- diary sections ---------- */
@@ -400,15 +410,15 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .tease:hover{border-color:var(--ink)}
 .tease .go{margin-left:auto;color:var(--pen);font:700 .95rem/1 var(--f-hand);white-space:nowrap}
 .league{display:flex;flex-direction:column;max-width:640px}
-.lg-row{display:grid;grid-template-columns:2.2em minmax(0,1fr) 3.4em 3.4em auto;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
-.lg-row.hd{font-size:.74rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;padding-block:4px 6px}
+.lg-row{display:grid;grid-template-columns:2.2em minmax(0,1fr) 3.4em auto;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.lg-row.hd{font-size:.75rem;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;padding-block:4px 6px}
 .lg-row .pos{font:400 1.25rem/1 var(--f-display);text-align:center}
 .lg-row .nm{font-weight:600;font-size:1.02rem}
 .lg-row .nm small{display:block;font-weight:400;font-size:.76rem;color:var(--faint)}
 .lg-row .pts{font:400 1.35rem/1 var(--f-display);font-variant-numeric:tabular-nums;text-align:right}
 .lg-row .w{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
 .lg-row.hd .pts,.lg-row.hd .w{font:inherit}
-.tag{display:table;margin:3px 0 2px;padding:2px 8px;border-radius:999px;font:600 .72rem/1.4 var(--f-body);vertical-align:2px;white-space:nowrap}
+.tag{display:table;margin:3px 0 2px;padding:2px 8px;border-radius:999px;font:600 .75rem/1.4 var(--f-body);vertical-align:2px;white-space:nowrap}
 .tag.clean{background:color-mix(in srgb, var(--b1) 18%, transparent);color:var(--ink)}
 .tag.smoky{background:color-mix(in srgb, var(--ink) 12%, transparent);color:var(--muted)}
 .lg-row.bottom{background:color-mix(in srgb, var(--ink) 5%, transparent);border-radius:8px}
@@ -416,10 +426,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .form{display:flex;gap:4px;justify-content:flex-end}
 .form i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:600 .68rem/1 var(--f-body);font-style:normal;
   background:color-mix(in srgb, var(--ink) var(--o), transparent);color:var(--bg)}
-.form i.live{outline:2px dashed var(--pen);outline-offset:1px}
+.form i.live{outline:1.5px solid var(--pen);outline-offset:1.5px;margin-left:3px}
 .bt-rules{margin-top:14px;max-width:640px}
 .rd-rank{font:700 1rem/26px var(--f-hand);color:var(--pen);margin-top:2px}
-@media (max-width:420px){.lg-row{grid-template-columns:1.8em minmax(0,1fr) 2.8em auto;gap:8px}.lg-row .w{display:none}.form i{width:18px;height:18px}}
+@media (max-width:420px){.lg-row{grid-template-columns:1.8em minmax(0,1fr) 2.8em auto;gap:8px}.form i{width:18px;height:18px}}
 .windgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start}
 @media (max-width:760px){.windgrid{grid-template-columns:minmax(0,1fr)}}
 .rose{max-width:420px;margin:0 auto}
@@ -444,14 +454,16 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .hm:not(.nums) .c::after{content:none}
 .hm.nums .c::after{content:attr(data-v)}
 .hm .c:hover{outline:2px solid var(--ink);outline-offset:-1px}
-.hm .dl{font-size:.7rem;line-height:1.25;color:var(--faint);white-space:nowrap;width:max-content;justify-self:center}
+.hm .dl{font-size:.75rem;line-height:1.25;color:var(--faint);white-space:nowrap;width:max-content;justify-self:center}
 .hm .dl.first{justify-self:start}.hm .dl.last{justify-self:end}
 .hm .sep{grid-column:1/-1;height:4px}
 .rule{height:1px;background:var(--line);border:0;margin:0}
 
-footer{font-size:.74rem;line-height:1.45;color:var(--faint);display:flex;flex-direction:column;gap:4px;padding-top:clamp(12px,2vw,20px)}
+footer{font-size:.75rem;line-height:1.45;color:var(--faint);display:flex;flex-direction:column;gap:4px;padding-top:clamp(12px,2vw,20px)}
 footer a{color:var(--ink)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* two-column top row (laptops and up): the side cards end level with the map card */
+@media (min-width:821px){ .status{align-items:stretch} .side > .facts{flex:1} }
 /* wide monitors: use the extra width. Bigger screens get a wider page, then sections pair up side by side. */
 @media (min-width:1400px){ .wrap,.sky-inner{max-width:1280px} }
 @media (min-width:1680px){
@@ -482,7 +494,12 @@ footer a{color:var(--ink)}
   <div class="veil-smog s1"></div><div class="veil-smog s2"></div><div class="veil-smog s3"></div><div class="veil-smog s4"></div>
   <p class="veil-txt"><b>Looking through the haze</b><small id="veilSub">Getting the latest readings</small><span class="veil-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
 </div>
-<div class="stick" id="stick" aria-hidden="true"></div>
+<div class="stick" id="stick">
+  <div class="st-v" id="stickV" aria-hidden="true"></div>
+  <nav class="st-nav" aria-label="Jump to a section">
+    <a href="#mapCard">Map</a><a href="#nowCard">How bad</a><a href="#battle">League</a><a href="#daySect">Trends</a><a href="#windSect">Wind</a>
+  </nav>
+</div>
 
 <header class="sky gut" id="sky">
   <svg class="scene" id="scene" viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
@@ -514,7 +531,7 @@ footer a{color:var(--ink)}
   </div>
 
   <section class="status">
-    <div class="mapbox card">
+    <div class="mapbox card" id="mapCard">
       <span class="kicker">Around the island</span>
       <div class="when"><span class="today" id="todayTag">Latest</span><span class="when-txt" id="mapDate"></span></div>
       <h2 class="maphead" id="mapTitle">Readings by region</h2>
@@ -546,11 +563,11 @@ footer a{color:var(--ink)}
     </div>
 
     <div class="side">
-      <div class="now card dots">
+      <div class="now card dots" id="nowCard">
         <span class="kicker">How bad is it?</span>
         <div class="verdict" id="verdict"></div>
         <h2 id="nowHead">Worst spot right now</h2>
-        <div class="big"><span class="n" id="nowNum">–</span><span class="unit">µg/m³ in <span id="nowRegion"></span></span></div>
+        <div class="big"><span class="n" id="nowNum">–</span><span class="unit">µg/m³ PM2.5 in <span id="nowRegion"></span></span></div>
         <div class="gauge" id="gauge" role="group" aria-label="PM2.5 bands. Choose a band to see its advice."></div>
         <div class="psi" id="psiLine" hidden></div>
         <p class="advice" id="advice"></p>
@@ -570,10 +587,10 @@ footer a{color:var(--ink)}
       <button type="button" id="btWeek" aria-pressed="false">This week</button>
     </div>
     <div class="league" id="league"></div>
-    <p class="sub small bt-rules"><b>Cleanest air wins.</b> Each day, the region with the lowest average PM2.5 gets 3 points. 2nd cleanest gets 2, 3rd gets 1. Dots show each day's place: 1 = cleanest that day. Today counts live, so places can change.</p>
+    <p class="sub small bt-rules"><b>Cleanest air wins.</b> Each day, the region with the lowest average PM2.5 gets 3 points. 2nd cleanest gets 2, 3rd gets 1. Dots show each day's place (1 = cleanest that day). The ringed dot is today, which counts live, so places can change.</p>
   </section>
 
-  <section class="sect dots">
+  <section class="sect dots" id="daySect">
     <div class="sec-head">
       <span class="kicker">Day by day</span>
       <h2 id="dailyHead">Day by day</h2>
@@ -583,6 +600,7 @@ footer a{color:var(--ink)}
       <span><span class="swl" style="border-color:var(--ink)"></span>Island average</span>
       <span><span class="sw" style="background:var(--ink);opacity:.14"></span>Range across regions</span>
       <span><span class="dot" style="background:var(--muted)"></span>Worst hour</span>
+      <span><span class="dot" style="width:9px;height:9px;border:2px solid var(--ink);background:transparent"></span>Today, so far</span>
     </div>
     <div class="chart" id="daily"></div>
   </section>
@@ -853,9 +871,8 @@ function say(m){
     else TYPE_T = setTimeout(()=>el.classList.remove("typing"), 900);
   })();
 }
-function setMood(avg, psi){
-  const pmL = bandIx(avg), pb = psi!=null ? psiBand(psi) : null;
-  const m = Math.max(pmL, pb ? pb.lvl : 0), b = BANDS[m], box = $("mood");
+function setMood(m, note){                 // m = overall level 0–3 (same verdict as the "How bad is it?" card)
+  const b = BANDS[m], box = $("mood");
   setSky(m);
   box.style.setProperty("--mbg", `var(${b.soft})`);
   box.style.setProperty("--mc", `var(${b.c})`);
@@ -866,7 +883,7 @@ function setMood(avg, psi){
     LAST_MOOD = m; LAST_LINE = -1;
     say(m);
   }
-  $("moodNote").textContent = `Island PM2.5 ${Math.round(avg)} (${BANDS[pmL].label})` + (pb ? ` · 24-hr PSI ${Math.round(psi)} (${pb.label})` : "");
+  $("moodNote").textContent = note;
 }
 const PUFFS = [["💖","✨","💖"],["💦","💧","💦"],["💨","😷","💨"],["💨","🌫️","💨"]];
 $("ava").addEventListener("click", ()=>{
@@ -898,13 +915,35 @@ function keepLabelsIn(){
     if(dx) inner.style.translate=`${Math.round(dx)}px 0`; });
 }
 let HRS=[];
-let LMAP=null, TILE=null, TILE_STYLE="", AREAS=[], MARKERS=[], MAP_I=-1, OPEN_REG=-1;
+let SEA=[], INSETS={}, LMAP=null, TILE=null, TILE_STYLE="", AREAS=[], MARKERS=[], MAP_I=-1, OPEN_REG=-1;
 const isDark = () => matchMedia("(prefers-color-scheme: dark)").matches ? document.documentElement.dataset.theme!=="light" : document.documentElement.dataset.theme==="dark";
 const MAP_ATTR = '<a href="https://www.onemap.gov.sg/" target="_blank" rel="noopener">OneMap</a> &copy; contributors | <a href="https://www.sla.gov.sg/" target="_blank" rel="noopener">Singapore Land Authority</a>';
 function initMap(){
   if(LMAP || !window.L) return;
   LMAP = L.map("map",{zoomControl:true, scrollWheelZoom:false, maxBounds:L.latLngBounds([1.17,103.58],[1.49,104.03]), maxBoundsViscosity:1,
     minZoom:10, maxZoom:16, zoomSnap:0.25, zoomDelta:0.5});
+  window.__map = LMAP;   // handy for debugging in the browser console
+  // Sea backdrop + inset covers. They live inside the tile pane, so they get the same colour filter as the tiles:
+  //  - the backdrop fills spots OneMap has no tiles for (they showed as black/white boxes);
+  //  - the covers hide OneMap's "INSET · Not to scale · Pedra Branca" box, which its tiles draw in the sea
+  //    at a different spot on zoom 11 and zoom 12 (and not at all from zoom 13).
+  const tp = LMAP.getPane("tilePane");
+  LMAP.createPane("sea", tp).style.zIndex = 0;
+  LMAP.createPane("cover", tp).style.zIndex = 5;
+  const seaR = L.svg({pane:"sea", padding:1}), covR = L.svg({pane:"cover", padding:.6}), opt = {stroke:false, fillOpacity:1, interactive:false};
+  SEA = [L.rectangle([[0.6,102.9],[2.1,104.9]], {...opt, renderer:seaR}).addTo(LMAP)];
+  INSETS = {
+    11: [L.rectangle([[1.1350,103.9610],[1.2492,104.1085]], {...opt, renderer:covR})],
+    12: [L.rectangle([[1.2325,103.9160],[1.2938,104.0012]], {...opt, renderer:covR}),    // box
+         L.rectangle([[1.2935,103.9355],[1.3013,103.9722]], {...opt, renderer:covR}),    // "1° 29' 30" N" label
+         L.rectangle([[1.2510,103.9083],[1.2896,103.9166]], {...opt, renderer:covR}),    // "104° 20' 00" E" label
+         L.rectangle([[1.2930,103.9150],[1.2954,104.0020]], {...opt, renderer:covR})]    // thin strip over the frame's top edge (hugs the coast)
+  };
+  // Use the zoom of the tile images actually loaded (sharp/retina screens load one level deeper).
+  const showInsetCover = () => { const tz = (TILE && TILE._tileZoom!=null) ? TILE._getZoomForUrl() : Math.max(11, Math.round(LMAP.getZoom()));
+    Object.entries(INSETS).forEach(([z,rs]) => rs.forEach(r => +z===tz ? r.addTo(LMAP) : r.remove())); };
+  window.__insetCover = showInsetCover;
+  LMAP.on("zoomend", showInsetCover); showInsetCover();
   fitHome();
   // Touch screens: one finger scrolls the page; two fingers move and zoom the map.
   if(matchMedia("(pointer: coarse)").matches){
@@ -991,13 +1030,16 @@ function setTiles(){
   if(TILE) LMAP.removeLayer(TILE);
   TILE = L.tileLayer(`https://www.onemap.gov.sg/maps/tiles/${style}/{z}/{x}/{y}.png`,{detectRetina:true, maxZoom:19, minZoom:10, minNativeZoom:11, attribution:MAP_ATTR}).addTo(LMAP);
   TILE_STYLE = style;
+  const sea = style==="Night" ? "#003753" : "#d1d1d1";            // OneMap's own sea colour, before our CSS filter
+  [...SEA, ...Object.values(INSETS).flat()].forEach(r => r.setStyle({fillColor:sea}));
+  if(window.__insetCover) window.__insetCover();
 }
 function updateMap(hi){
   initMap(); if(!LMAP) return; setTiles(); MAP_I = hi;
   const hr = HRS[hi], edge = css("--surface");
   REG.forEach((r,i)=>{
     const v=hr.vals[i], b=band(v), col=css(b.c), t=trendOf(hi,i);
-    if(AREAS[i]) AREAS[i].setStyle({color:edge, weight:1.5, fillColor:col, fillOpacity: isDark() ? .5 : .42});
+    if(AREAS[i]) AREAS[i].setStyle({color:edge, weight:1.5, fillColor:col, fillOpacity: isDark() ? .36 : .42});
     const tr = t ? `<small class="${t.cls}">${t.sym}${t.d ? Math.abs(t.d) : ""}</small>` : "";
     MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})" aria-label="${r.name}: ${v}${t?", "+t.txt:""}. Tap for 24-hour trend.">${v}${tr}</div>`}));
   });
@@ -1051,7 +1093,9 @@ function penNote(svg, px, py, text, o={}){
 /* ---------- SVG helpers ---------- */
 const NS="http://www.w3.org/2000/svg";
 const el = (tag, attrs={}, parent) => { const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); parent&&parent.appendChild(e); return e; };
-const txt = (svg, x, y, s, o={}) => { const t=el("text",{x,y,fill:css("--muted"),"font-size":11,"font-family":css("--f-body"),...o},svg); t.textContent=s; return t; };
+// Chart text. On wide screens the charts are bigger, so their labels grow a little too.
+const txt = (svg, x, y, s, o={}) => { const k = (typeof WIDE!=="undefined" && WIDE.matches) ? 1.15 : 1, fs = (+o["font-size"]||11)*k;
+  const t=el("text",{x,y,fill:css("--muted"),"font-family":css("--f-body"),...o,"font-size":fs},svg); t.textContent=s; return t; };
 function tipFor(box){ let t=box.querySelector(":scope > .tip"); if(!t){ t=document.createElement("div"); t.className="tip"; t.hidden=true; box.appendChild(t);} return t; }
 // Wide screens: a chart card sits beside a taller card. Grow the chart to fill its card instead of leaving a gap.
 // (Call after clearing the box, so its height is the space left, not the old chart.)
@@ -1153,14 +1197,22 @@ function renderNow(i){
     if(pb.lvl > bandIx(hr.max)) ADVICE_OVERRIDE = `<b>PSI is ${pb.label} (${REG[wr].name}):</b> ${pb.advice}`;
     VERDICT_PSI = {pb, hi, wr};
   } else { line.hidden = true; VERDICT_PSI = null; }
-  // one plain verdict: the day (PSI) and the hour (PM2.5)
-  const vp = VERDICT_PSI, dayWord = isLatest ? (hr.d===today?"Today":dayName(hr.d)) : fmtDay(hr.d), hrWord = isLatest ? "Right now" : `At ${fmtHour(hr.h)}`;
-  $("verdict").innerHTML = (vp ? `<div class="vd"><span class="vk">${dayWord} · 24-hr PSI</span><b><i class="dia" style="background:var(${vp.pb.c})"></i>${vp.pb.label}</b><small>${vp.hi} in ${REG[vp.wr].name}</small></div>` : "")
-    + `<div class="vd"><span class="vk">${hrWord} · PM2.5</span><b><i class="dt" style="background:var(${b.c})"></i>${b.label}</b><small>${hr.max} in ${REG[wi].name}</small></div>`;
-  $("stick").innerHTML = (vp ? `<span><i class="dia" style="background:var(${vp.pb.c})"></i>PSI <b>${vp.hi}</b> ${vp.pb.label}</span>` : "")
-    + `<span><i class="dt" style="background:var(${b.c})"></i>PM2.5 <b>${hr.max}</b> ${b.label}</span>`;
+  // ONE headline verdict: the stricter of 24-hr PSI (NEA's daily health measure) and this hour's PM2.5. Ties go to PSI.
+  // Everything else on the page (avatar, sticky bar) uses this same verdict, so visitors never see two different answers.
+  const vp = VERDICT_PSI, dayWord = isLatest ? (hr.d===today?"Today":dayName(hr.d)) : fmtDay(hr.d), hrWord = isLatest ? "right now" : `at ${fmtHour(hr.h)}`;
+  const pmIx = bandIx(hr.max), usePsi = vp && vp.pb.lvl >= pmIx;
+  const V = usePsi ? {label:vp.pb.label, c:vp.pb.c, shape:"dia", lvl:Math.max(vp.pb.lvl, pmIx),
+                      why:`From 24-hr PSI ${vp.hi} in ${REG[vp.wr].name}. NEA bases its health advice on this.`}
+                   : {label:b.label, c:b.c, shape:"dt", lvl:pmIx,
+                      why:`From PM2.5 ${hrWord}: ${hr.max} µg/m³ in ${REG[wi].name}.`};
+  const other = usePsi ? `PM2.5 ${hrWord}: <b>${b.label}</b> (${hr.max} in ${REG[wi].name})`
+              : vp ? `24-hr PSI: <b>${vp.pb.label}</b> (${vp.hi} in ${REG[vp.wr].name})` : "";
+  $("verdict").innerHTML = `<div class="vd one"><span class="vk">${dayWord} · overall</span><b><i class="${V.shape}" style="background:var(${V.c})"></i>${V.label}</b><small>${V.why}</small></div>`
+    + `<p class="vsub">${other ? other + " · " : ""}Island average PM2.5: ${Math.round(hr.avg)}</p>`;
+  $("stickV").innerHTML = `<span><i class="${V.shape}" style="background:var(${V.c})"></i><b>${V.label}</b>&nbsp;overall</span>`
+    + `<span>${vp ? `PSI <b>${vp.hi}</b> · ` : ""}PM2.5 <b>${hr.max}</b></span>`;
   showAdvice(CUR_BAND,false);
-  setMood(hr.avg, ps ? mean(ps) : null);
+  setMood(V.lvl, `${V.label} overall · island average PM2.5 ${Math.round(hr.avg)}`);
   updateMap(i);
   setWind(windFor(i));
 }
@@ -1215,7 +1267,7 @@ playBtn.addEventListener("click", ()=>{
 /* ---------- daily chart ---------- */
 function drawDaily(){
   const box=$("daily"); box.innerHTML="";
-  const W=Math.max(320,box.clientWidth||720), narrow=W<560, H=fillH(box, narrow?260:300), L=34, R=narrow?44:92, T=24, B=30;
+  const W=Math.max(320,box.clientWidth||720), narrow=W<560, H=fillH(box, narrow?260:300), L=34, R=narrow?52:92, T=30, B=30;
   // Scale to the typical range; rare spikes are marked at the top instead of squashing the chart.
   const yMax = niceMax(Math.max(...days.map(d=>d.hi), quantile(days.map(d=>d.peak),.85)) * 1.1);
   const x = i => days.length>1 ? L + i*(W-L-R)/(days.length-1) : (L+W-R)/2, y = v => T + (1-Math.min(v,yMax)/yMax)*(H-T-B);
@@ -1226,12 +1278,12 @@ function drawDaily(){
     txt(svg, L-8, y(v)+4, v, {"text-anchor":"end","font-family":css("--f-num")});
   }
   // band thresholds in their own band colour, labelled at the right
-  [[55,"--b2","Elevated","II"],[150,"--b3","High","III"],[250,"--b4","Very high","IV"]].forEach(([v,c,lab,short])=>{
+  [[55,"--b2","Elevated","Elev."],[150,"--b3","High","High"],[250,"--b4","Very high","V.high"]].forEach(([v,c,lab,short])=>{
     if(v>=yMax) return;
     el("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),stroke:css(c),"stroke-dasharray":"2 4","stroke-width":1.4,opacity:.9},svg);
     txt(svg, W-R+8, y(v)+4, narrow?short:lab, {fill:css(c),"font-weight":600});
   });
-  txt(svg, W-R+8, y(Math.min(27,yMax/2))+4, narrow?"I":"Normal", {fill:css("--b1"),"font-weight":600});
+  txt(svg, W-R+8, y(Math.min(27,yMax/2))+4, narrow?"Norm.":"Normal", {fill:css("--b1"),"font-weight":600});
   const ev = narrow?7:4;
   days.forEach((d,i)=>{ if((i%ev===0 && i<days.length-2) || i===days.length-1) txt(svg, x(i), H-8, fmtDay(d.d), {"text-anchor":i===days.length-1?"end":"middle"}); });
   const area = days.map((d,i)=>`${x(i)},${y(d.hi)}`).join(" ")+" "+days.map((d,i)=>`${x(i)},${y(d.lo)}`).reverse().join(" ");
@@ -1241,14 +1293,15 @@ function drawDaily(){
   el("polyline",{points:days.slice(0,solidN).map((d,i)=>`${x(i)},${y(d.avg)}`).join(" "),fill:"none",stroke:css("--ink"),"stroke-width":2.4,"stroke-linejoin":"round"},svg);
   if(partial){ const a=days.length-2, b=days.length-1;
     el("line",{x1:x(a),y1:y(days[a].avg),x2:x(b),y2:y(days[b].avg),stroke:css("--ink"),"stroke-width":2,"stroke-dasharray":"4 4",opacity:.7},svg); }
+  let lastLX = -1e9, lifted = false;                  // stagger spike labels that would touch their neighbour
   days.forEach((d,i)=>{
     if(d.peak<=yMax){ el("circle",{cx:x(i),cy:y(d.peak),r:3,fill:css("--muted")},svg); return; }
     const cx=x(i), cy=T;                                 // off-scale spike: arrow + value at the top
     el("path",{d:`M${cx-4},${cy+2} L${cx},${cy-4} L${cx+4},${cy+2} Z`,fill:css("--ink"),opacity:.85},svg);
-    txt(svg, cx, cy-8, d.peak, {"text-anchor":i===days.length-1?"end":"middle",fill:css("--ink"),"font-family":css("--f-num"),"font-size":10.5});
+    lifted = (cx-lastLX < 26) && !lifted; lastLX = cx;
+    txt(svg, cx, cy-(lifted?19:8), d.peak, {"text-anchor":"middle",fill:css("--ink"),"font-family":css("--f-num"),"font-size":10.5});
   });
   el("circle",{cx:x(days.length-1),cy:y(days[days.length-1].avg),r:4.5,fill:partial?css("--bg"):css("--ink"),stroke:css("--ink"),"stroke-width":2},svg);
-  if(partial) txt(svg, x(days.length-1)-8, y(days[days.length-1].avg)+18, "so far", {"text-anchor":"end","font-size":10.5});
   // margin notes: worst and cleanest days (full days only)
   const full = days.map((d,i)=>({d,i})).filter(o=>o.i<days.length-1 || hours.filter(h=>h.d===o.d.d).length>=24);
   if(full.length>2){
@@ -1387,8 +1440,8 @@ function drawBattle(){
     const tag = k===0 && r.pts>0 ? `<span class="tag clean">🌿 Cleanest air</span>` : k===lg.length-1 ? `<span class="tag smoky">😷 Smokiest</span>` : "";
     return `<div class="lg-row${k===0?" top":k===lg.length-1?" bottom":""}"><span class="pos">${k<3 && r.pts>0 ? MEDAL[k] : k+1}</span>
       <span class="nm">${r.name}${tag}<small>${r.wins} daily win${r.wins===1?"":"s"}</small></span>
-      <span class="pts">${r.pts}</span><span class="w">${r.wins}</span><span class="form">${chips}</span></div>`; }).join("");
-  $("league").innerHTML = `<div class="lg-row hd"><span>#</span><span>Cleanest first ↓</span><span class="pts">Pts</span><span class="w">Wins</span><span class="form">Last 5 days</span></div>` + rows;
+      <span class="pts">${r.pts}</span><span class="form">${chips}</span></div>`; }).join("");
+  $("league").innerHTML = `<div class="lg-row hd"><span>#</span><span>Cleanest ↓</span><span class="pts">Pts</span><span class="form">Last 5 days → today</span></div>` + rows;
 }
 $("btAll").onclick = ()=>{ BT = window.__bt = "all"; drawBattle(); };
 $("btWeek").onclick = ()=>{ BT = window.__bt = "week"; drawBattle(); };
@@ -1701,6 +1754,11 @@ new MutationObserver(()=>window.__draw&&window.__draw()).observe(document.docume
 let rz, lastW=innerWidth;
 addEventListener("resize",()=>{ if(innerWidth===lastW) return; lastW=innerWidth; clearTimeout(rz); rz=setTimeout(()=>window.__charts&&window.__charts(),150); });
 if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>window.__font&&window.__font());
+try{ const links=[...document.querySelectorAll(".st-nav a")], seen=new Map();
+  const io=new IntersectionObserver(es=>{ es.forEach(e=>seen.set(e.target.id, e.isIntersecting ? e.intersectionRatio : 0));
+    let best=null, r=0; seen.forEach((v,k)=>{ if(v>r){ r=v; best=k; } });
+    links.forEach(a=>a.classList.toggle("on", a.getAttribute("href")==="#"+best)); }, {threshold:[0,.25,.5,.75,1], rootMargin:"-90px 0px -40% 0px"});
+  links.forEach(a=>{ const t=document.querySelector(a.getAttribute("href")); if(t) io.observe(t); }); }catch(e){}
 try{ new IntersectionObserver(([e])=>$("stick").classList.toggle("show", !e.isIntersecting && e.boundingClientRect.top<0)).observe(document.querySelector(".sky")); }catch(e){}
 setInterval(load, REFRESH_MIN*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !first) load(); });
