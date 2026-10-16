@@ -405,6 +405,10 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .lg-row .pts{font:400 1.35rem/1 var(--f-display);font-variant-numeric:tabular-nums;text-align:right}
 .lg-row .w{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
 .lg-row.hd .pts,.lg-row.hd .w{font:inherit}
+.tag{display:table;margin:3px 0 2px;padding:2px 8px;border-radius:999px;font:600 .72rem/1.4 var(--f-body);vertical-align:2px;white-space:nowrap}
+.tag.clean{background:color-mix(in srgb, var(--b1) 18%, transparent);color:var(--ink)}
+.tag.smoky{background:color-mix(in srgb, var(--ink) 12%, transparent);color:var(--muted)}
+.lg-row.bottom{background:color-mix(in srgb, var(--ink) 5%, transparent);border-radius:8px}
 .lg-row.top{background:color-mix(in srgb, var(--pen) 7%, transparent);border-radius:8px}
 .form{display:flex;gap:4px;justify-content:flex-end}
 .form i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:600 .68rem/1 var(--f-body);font-style:normal;
@@ -542,8 +546,8 @@ footer a{color:var(--ink)}
 
   <section class="sect tape-r" id="battle">
     <div class="sec-head">
-      <span class="kicker">Region battle</span>
-      <h2 id="btHead">Region battle</h2>
+      <span class="kicker">🌿 Clean air league</span>
+      <h2 id="btHead">Clean air league</h2>
       <p class="sub" id="btSub"></p>
     </div>
     <div class="gridtabs" role="group" aria-label="Battle period">
@@ -551,7 +555,7 @@ footer a{color:var(--ink)}
       <button type="button" id="btWeek" aria-pressed="false">This week</button>
     </div>
     <div class="league" id="league"></div>
-    <p class="sub small bt-rules">Each day, the region with the cleanest air (lowest daily average) gets 3 points. 2nd gets 2, 3rd gets 1. Today counts live, so places can change during the day.</p>
+    <p class="sub small bt-rules"><b>Cleanest air wins.</b> Each day, the region with the lowest average PM2.5 gets 3 points. 2nd cleanest gets 2, 3rd gets 1. Dots show each day's place: 1 = cleanest that day. Today counts live, so places can change.</p>
   </section>
 
   <section class="sect dots">
@@ -931,7 +935,7 @@ function regionCard(i, r){
       <div class="rd-num"><b>${v}</b><span>µg/m³</span></div>
       <div><span class="rd-band">${b.label}</span>${t?`<span class="rd-trend">${t.sym} ${t.txt}</span>`:""}</div>
       <p class="rd-adv">${b.advice}</p>
-      ${window.BATTLE ? `<div class="rd-rank">🏆 ${ordinal(BATTLE.pos[r])} in the region battle · ${BATTLE.pts[r]} pts</div>` : ""}
+      ${window.BATTLE ? `<div class="rd-rank">${BATTLE.pos[r]===1?"🌿":BATTLE.pos[r]===5?"😷":"🏆"} ${BATTLE.pos[r]===1?"Cleanest air":BATTLE.pos[r]===5?"Smokiest air":ordinal(BATTLE.pos[r])+" cleanest"} in the clean air league · ${BATTLE.pts[r]} pts</div>` : ""}
     </div>
     <div class="rd-chart">${sp.svg}<div class="rd-cap"><span>${sp.from}</span><span>low ${sp.lo}, high ${sp.hi}</span><span>${sp.to}</span></div></div>`;
 }
@@ -1329,27 +1333,28 @@ function drawBattle(){
   const all = BT==="all", lg = all ? LG_ALL : LG_WEEK, ds = all ? days : weekDays;
   $("btAll").setAttribute("aria-pressed", all); $("btWeek").setAttribute("aria-pressed", !all);
   const [a,b] = lg, last = lg[lg.length-1];
-  $("btHead").textContent = !ds.length ? "Region battle"
-    : a.pts===b.pts ? `${a.name} and ${b.name} are tied at the top`
-    : `${a.name} leads by ${a.pts-b.pts} point${a.pts-b.pts===1?"":"s"}`;
+  $("btHead").textContent = !ds.length ? "Clean air league"
+    : a.pts===b.pts ? `${a.name} and ${b.name} are tied for the cleanest air`
+    : `${a.name} has the cleanest air, ${a.pts-b.pts} pt${a.pts-b.pts===1?"":"s"} ahead`;
   const tday = hasToday ? days[days.length-1] : null;
   const tOrder = tday ? REG.map((_,i)=>i).sort((x,y)=>tday.reg[x]-tday.reg[y]) : null;
-  $("btSub").textContent = `${ds.length} match day${ds.length===1?"":"s"}${all?" since 1 Oct":` since Mon ${fmtDay(weekStart)}`}. ${last.name} is bottom with ${last.pts} pt${last.pts===1?"":"s"}.`
+  $("btSub").textContent = `${ds.length} match day${ds.length===1?"":"s"}${all?" since 1 Oct":` since Mon ${fmtDay(weekStart)}`}. ${last.name} has the smokiest air, with ${last.pts} pt${last.pts===1?"":"s"}.`
     + (tOrder ? ` Today so far: ${REG[tOrder[0]].name} cleanest, ${REG[tOrder[4]].name} smokiest.` : "");
   const ops = ["100%","72%","50%","32%","20%"];
   const rows = lg.map((r,k)=>{
     const f = r.form.slice(-5), off = r.form.length - f.length;
     const chips = f.map((p,j)=>{ const live = hasToday && off+j===r.form.length-1;
       return `<i style="--o:${ops[p-1]}" class="${live?"live":""}" title="${ordinal(p)}${live?" (today, live)":""}">${p}</i>`; }).join("");
-    return `<div class="lg-row${k===0?" top":""}"><span class="pos">${k<3 && r.pts>0 ? MEDAL[k] : k+1}</span>
-      <span class="nm">${r.name}<small>${r.wins} daily win${r.wins===1?"":"s"}</small></span>
+    const tag = k===0 && r.pts>0 ? `<span class="tag clean">🌿 Cleanest air</span>` : k===lg.length-1 ? `<span class="tag smoky">😷 Smokiest</span>` : "";
+    return `<div class="lg-row${k===0?" top":k===lg.length-1?" bottom":""}"><span class="pos">${k<3 && r.pts>0 ? MEDAL[k] : k+1}</span>
+      <span class="nm">${r.name}${tag}<small>${r.wins} daily win${r.wins===1?"":"s"}</small></span>
       <span class="pts">${r.pts}</span><span class="w">${r.wins}</span><span class="form">${chips}</span></div>`; }).join("");
-  $("league").innerHTML = `<div class="lg-row hd"><span>#</span><span>Region</span><span class="pts">Pts</span><span class="w">Wins</span><span class="form">Last 5 days</span></div>` + rows;
+  $("league").innerHTML = `<div class="lg-row hd"><span>#</span><span>Cleanest first ↓</span><span class="pts">Pts</span><span class="w">Wins</span><span class="form">Last 5 days</span></div>` + rows;
 }
 $("btAll").onclick = ()=>{ BT = window.__bt = "all"; drawBattle(); };
 $("btWeek").onclick = ()=>{ BT = window.__bt = "week"; drawBattle(); };
 const tz = $("battleTease"), lead = LG_ALL[0];
-tz.innerHTML = `<span>🏆 <b>${lead.name}</b> leads the region battle with ${lead.pts} pts</span><span class="go">see table ↓</span>`;
+tz.innerHTML = `<span>🌿 <b>${lead.name}</b> has the cleanest air since 1 Oct · ${lead.pts} pts</span><span class="go">clean air league ↓</span>`;
 tz.hidden = false;
 tz.onclick = ()=>$("battle").scrollIntoView({block:"start", behavior: reduceMotion?"auto":"smooth"});
 
