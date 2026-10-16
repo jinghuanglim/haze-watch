@@ -1443,8 +1443,12 @@ function drawBattle(){
 $("btAll").onclick = ()=>{ BT = window.__bt = "all"; drawBattle(); };
 $("btWeek").onclick = ()=>{ BT = window.__bt = "week"; drawBattle(); };
 const tz = $("battleTease"), lead = LG_ALL[0];
-tz.innerHTML = `<span>🌿 <b>${lead.name}</b> has the cleanest air since 1 Oct · ${lead.pts} pts</span><span class="go">clean air league ↓</span>`;
+tz.innerHTML = `<span>🌿 <b>${lead.name}</b> has the cleanest air since 1 Oct · ${lead.pts} pts</span><span class="go">clean air league <span id="teaseArrow">↓</span></span>`;
 tz.hidden = false;
+// Point the arrow at wherever the league really is: straight below (phones, laptops) or below-right (wide 60/40 grid).
+const aimTease = () => { const a=tz.getBoundingClientRect(), t=$("battle").getBoundingClientRect();
+  $("teaseArrow").textContent = t.left >= a.right - 8 ? "↘" : t.right <= a.left + 8 ? "↙" : "↓"; };
+aimTease(); addEventListener("resize", aimTease);
 tz.onclick = ()=>$("battle").scrollIntoView({block:"start", behavior: reduceMotion?"auto":"smooth"});
 
 /* ---------- wind: where haze comes from ---------- */
