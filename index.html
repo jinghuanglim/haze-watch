@@ -315,8 +315,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .psi b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
 .psi .pchip{display:inline-flex;align-items:center;gap:6px;font-size:.84rem;font-weight:600;color:var(--ink)}
 .psi .pchip i{width:9px;height:9px;border-radius:2px;transform:rotate(45deg)}
-.psi .info{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 .72rem/1 var(--f-body);cursor:pointer;padding:0}
-.psi .info[aria-expanded="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.psi .info,.sp-tools .info{flex:none;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font:600 .72rem/1 var(--f-body);cursor:pointer;padding:0}
+.psi .info[aria-expanded="true"],.sp-tools .info[aria-expanded="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .psinote{flex-basis:100%;font-size:.8rem;color:var(--muted);line-height:1.45}
 /* footer sign-off */
 .sign{font:700 1.08rem/1.2 var(--f-hand);color:var(--pen);transform:rotate(-1.2deg);transform-origin:left;margin-bottom:2px}
@@ -416,6 +416,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .space{margin-top:26px;padding-top:22px;border-top:1px dashed var(--line)}
 .sp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:12px}
 .sp-head .sub{max-width:62ch}
+.sp-tools{display:inline-flex;align-items:center;gap:10px}
+.sp-note{margin:-2px 0 12px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--pen) 7%,transparent);font-size:.88rem;line-height:1.5;color:var(--ink);max-width:70ch}
 .sp-tog{display:inline-flex;align-items:center;gap:7px;font-size:.88rem;color:var(--ink);cursor:pointer;white-space:nowrap}
 .sp-tog input{width:16px;height:16px;accent-color:var(--pen)}
 #spaceMap .leaflet-tile-pane{filter:none!important}
@@ -879,8 +881,10 @@ footer a{color:var(--ink)}
       <div class="sp-head">
         <div><h3 class="minihead">Yesterday from space · <span id="spDate">–</span></h3>
           <p class="sub small">NASA satellite photo with fire hotspots. Satellites pass once a day, so this is not live. The grey-brown veil over the sea is the haze; bright white is cloud.</p></div>
-        <label class="sp-tog"><input type="checkbox" id="spSmoke"> Show smoke thickness</label>
+        <div class="sp-tools"><label class="sp-tog"><input type="checkbox" id="spSmoke"> Show smoke thickness</label>
+          <button class="info" id="spInfo" type="button" aria-expanded="false" aria-controls="spNote" aria-label="What is smoke thickness?">i</button></div>
       </div>
+      <p class="sp-note" id="spNote" hidden><b>Smoke thickness</b> shows how much haze blocks sunlight through the whole sky, from the ground up. Yellow is light, red is thick. It is not the same as PM2.5, which is the air you breathe at ground level. Smoke can sit high above us without reaching the ground. Blank areas are clouds the satellite can't see through, not clean air.</p>
       <div class="sp-map" id="spaceMap" role="region" aria-label="Satellite view of Sumatra, Singapore and Borneo with fire hotspots"></div>
       <div class="legend sp-leg"><span><span class="dot" style="background:#ff3b1a"></span>Fire hotspot</span><span><span class="dot" style="background:#2753c9;outline:2px solid #fff"></span>Singapore</span><span class="sp-aod"><i></i>Smoke thickness: light → thick</span></div>
     </div>
@@ -2378,6 +2382,7 @@ function loadSpaceDay(day){
 }
 function wireSpace(){
   const card=$("spaceCard"); if(!card) return;
+  $("spInfo").onclick = ()=>{ const n=$("spNote"), open=n.hidden; n.hidden=!open; $("spInfo").setAttribute("aria-expanded", open); };
   $("spSmoke").addEventListener("change", e=>{ if(!SPACE) return; e.target.checked ? SPACE.smoke.addTo(SPACE.m) : SPACE.m.removeLayer(SPACE.smoke); SPACE.fire.bringToFront && SPACE.fire.bringToFront(); });
   try{ new IntersectionObserver((es,o)=>{ if(es[0].isIntersecting){ initSpace(); o.disconnect(); } },{rootMargin:"200px"}).observe(card); }catch(e){ initSpace(); }
 }
