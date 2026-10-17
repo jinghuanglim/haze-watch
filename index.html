@@ -457,6 +457,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .blog li:first-child{border-top:0}
 .blog time{font-weight:600;color:var(--muted);font-size:.78rem;font-variant-numeric:tabular-nums}
 .blog .ci{text-align:center} .blog p{margin:0}
+.blog li.none p{color:var(--muted)}
 .blog li.jh p{color:color-mix(in srgb,var(--b1) 55%,var(--ink))} .blog li.dv p{color:color-mix(in srgb,var(--b3) 60%,var(--ink))}
 /* Darth Vapour (colossal Smoke Wraith). Parts move around fixed points in the drawing's own coordinates. */
 .dvart{cursor:pointer;position:relative;border-radius:12px}
@@ -774,7 +775,7 @@ footer a{color:var(--ink)}
     <div class="power" id="bossPower"></div>
     <div class="bossgrid">
       <div class="bstats" id="bossStats"></div>
-      <div><h3 class="minihead">Recent rounds</h3><ol class="blog" id="bossLog"></ol></div>
+      <div><h3 class="minihead">Every round, latest first</h3><ol class="blog" id="bossLog"></ol></div>
     </div>
     <p class="sub small bt-rules">Hit size by hourly change in island PM2.5: 👊 Jab 5–14 · 💥 Hit 15–29 · ⚡ Critical 30–49 · ☄️ Ultra 50+. Dropping a band breaks a shield. Darth Vapour only retreats after 72 hours in a row of Normal air.</p>
   </section>
@@ -1935,7 +1936,11 @@ for(let i=1;i<hours.length;i++){
 // combos: 3+ scoring rounds in a row the same way
 rounds.forEach((r,k)=>{ const p=rounds[k-1]; r.combo = (r.tier && p && p.tier && Math.sign(p.d)===Math.sign(r.d)) ? p.combo+1 : (r.tier?1:0); });
 function moveText(r){
-  if(!r.tier) return {txt:`Standoff. Both sides catch their breath (${r.d>0?"+":""}${r.d}).`, side:"none"};
+  if(!r.tier){ const n = `${r.d>0?"+":r.d<0?"−":"±"}${Math.abs(r.d)}`;
+    const q = [`Standoff. Both sides catch their breath (${n}).`, `They circle each other. Nobody strikes (${n}).`, `A tense pause over the city (${n}).`,
+      `Darth Vapour hovers. JH holds his ground (${n}).`, `Feints, but no real blows (${n}).`, `Quiet hour. The smog barely shifts (${n}).`,
+      `Both sides wait for the wind (${n}).`, `A stare-down across the bay (${n}).`];
+    return {txt: q[hash(r.t) % q.length], side:"none"}; }
   const jh = r.d < 0, n = Math.abs(r.d), T = r.tier.k;
   const base = jh ? {jab:`JH jabs! Darth Vapour loses ${n}.`, hit:`JH lands a solid hit: −${n}.`, crit:`CRITICAL! JH lands a ${n}-point blow.`, ultra:`ULTRA! JH smashes Darth Vapour for ${n}!`}[T]
                   : {jab:`Darth Vapour jabs back: +${n}.`, hit:`Darth Vapour strikes: +${n}.`, crit:`CRITICAL! Darth Vapour hits for ${n}.`, ultra:`ULTRA! Darth Vapour unleashes +${n}!`}[T];
@@ -2124,8 +2129,9 @@ function drawBoss(){
     {k:"Momentum (last 6h)", v: mom<0 ? `<span class="jh">JH, ${mom}</span>` : mom>0 ? `<span class="dv">Darth, +${mom}</span>` : "Even"},
     {k:"Times stunned", v:`${stuns} <small>(dropped to Normal)</small>`}
   ].map(s=>`<div class="bs"><span class="k">${s.k}</span><span class="v">${s.v}</span></div>`).join("");
-  $("bossLog").innerHTML = rounds.filter(r=>r.tier).slice(WIDE.matches ? -10 : -6).reverse().map(r=>{ const m=moveText(r);
-    return `<li class="${m.side}"><time>${r.t.slice(0,10)===now.d?"":fmtDay(r.t.slice(0,10))+" "}${fmtHour(r.h)}</time><span class="ci">${r.tier.icon}</span><p>${m.txt}</p></li>`; }).join("");
+  // every hour gets a line, quiet hours included, so the log never looks like it skipped
+  $("bossLog").innerHTML = rounds.slice(WIDE.matches ? -12 : -8).reverse().map(r=>{ const m=moveText(r);
+    return `<li class="${m.side}"><time>${r.t.slice(0,10)===now.d?"":fmtDay(r.t.slice(0,10))+" "}${fmtHour(r.h)}</time><span class="ci">${r.tier?r.tier.icon:"🤝"}</span><p>${m.txt}</p></li>`; }).join("");
   wireBoss();
   // impact effect on big hits (once per new hour)
   const arena=$("arena"); if(BOSS_SHOWN!==last.t){ BOSS_SHOWN=last.t;
