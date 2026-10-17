@@ -408,6 +408,21 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .mapbox.card::before{transform:rotate(-6deg);width:66px}
 .sec-head{display:flex;flex-direction:column;gap:6px;margin-bottom:22px;max-width:none}
 .chart{position:relative}
+/* live haze layer + satellite card */
+.hazefx{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .4s}
+.hazebtn{display:flex;align-items:center;gap:5px;margin-top:6px;padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 .78rem/1 var(--f-body);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.hazebtn[aria-pressed="false"]{opacity:.7}
+@media (max-width:600px){.hazebtn .hz-t{display:none}}
+.space{margin-top:26px;padding-top:22px;border-top:1px dashed var(--line)}
+.sp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.sp-head .sub{max-width:62ch}
+.sp-tog{display:inline-flex;align-items:center;gap:7px;font-size:.88rem;color:var(--ink);cursor:pointer;white-space:nowrap}
+.sp-tog input{width:16px;height:16px;accent-color:var(--pen)}
+#spaceMap .leaflet-tile-pane{filter:none!important}
+.sp-map{height:clamp(280px,42vw,460px);border-radius:12px;overflow:hidden;background:#0d1a26}
+.sp-leg{margin-top:10px}
+.sp-aod i{display:inline-block;width:46px;height:9px;border-radius:3px;background:linear-gradient(90deg,#f1d36a,#e9892f,#c62a1c)}
+.sp-tip{font:600 .78rem/1 var(--f-body)}
 /* season boss */
 .arena{display:grid;grid-template-columns:clamp(64px,10vw,96px) minmax(0,1fr) clamp(132px,22vw,240px);align-items:center;gap:clamp(10px,2vw,18px);
   padding:14px;border-radius:14px;background:linear-gradient(90deg,color-mix(in srgb,var(--b1) 10%,transparent),transparent 40%,transparent 60%,color-mix(in srgb,var(--b3) 12%,transparent))}
@@ -720,7 +735,7 @@ footer a{color:var(--ink)}
       <div class="rdetail rp" id="rdetail" aria-live="polite" hidden></div>
       <div class="keyrow" id="keyRow"></div>
       <button type="button" class="tease" id="battleTease" hidden></button>
-      <p class="maphint">Numbers are PM2.5 (µg/m³). Arrows show the change from the hour before. Tap a region for its last 24 hours.</p>
+      <p class="maphint">The drifting haze is an illustration: it moves with the current wind and is thicker where PM2.5 is higher. Numbers are PM2.5 (µg/m³). Arrows show the change from the hour before. Tap a region for its last 24 hours.</p>
       <div class="timebar">
         <div class="dayrow">
           <button class="btn ghost icon" id="prevDay" type="button" aria-label="Previous day">‹</button>
@@ -859,6 +874,15 @@ footer a{color:var(--ink)}
         <p class="sub small" id="wsSub">Average island reading for each wind speed.</p>
         <div class="chart" id="wspeed"></div>
       </div>
+    </div>
+    <div class="space" id="spaceCard">
+      <div class="sp-head">
+        <div><h3 class="minihead">Yesterday from space · <span id="spDate">–</span></h3>
+          <p class="sub small">NASA satellite photo with fire hotspots. Satellites pass once a day, so this is not live. The grey-brown veil over the sea is the haze; bright white is cloud.</p></div>
+        <label class="sp-tog"><input type="checkbox" id="spSmoke"> Show smoke thickness</label>
+      </div>
+      <div class="sp-map" id="spaceMap" role="region" aria-label="Satellite view of Sumatra, Singapore and Borneo with fire hotspots"></div>
+      <div class="legend sp-leg"><span><span class="dot" style="background:#ff3b1a"></span>Fire hotspot</span><span><span class="dot" style="background:#2753c9;outline:2px solid #fff"></span>Singapore</span><span class="sp-aod"><i></i>Smoke thickness: light → thick</span></div>
     </div>
   </section>
 
@@ -1250,6 +1274,7 @@ function updateMap(hi){
     MARKERS[i].setIcon(L.divIcon({className:"", iconSize:null, html:`<div class="mk" style="--c:var(${b.c})" aria-label="${r.name}: ${v}${t?", "+t.txt:""}. Tap for 24-hour trend.">${v}${tr}</div>`}));
   });
   keepLabelsIn();
+  initHaze(); setHaze(hr.vals, HAZE.wind);
   showRegionCard();   // keep the region card and outline in step with the time slider
 }
 
@@ -1269,6 +1294,7 @@ function ensureWindCtl(){
   c.addTo(LMAP); WINDCTL = c;
 }
 function setWind(w){
+  HAZE.wind = w; hazeKick();
   ensureWindCtl(); const box=$("windbox"); if(!box) return;
   if(!w){ box.hidden = true; return; }
   box.hidden = false;
@@ -2234,6 +2260,128 @@ window.__draw=drawAll; window.__charts=()=>{ drawDaily(); drawDiurnal(); drawRos
 window.__latest=last.t;
 }
 
+/* ---------- live haze layer ----------
+   An illustration, not a measurement: soft smoke puffs drift across the map with the CURRENT wind
+   (direction and speed), and are thicker over regions with higher PM2.5 at the hour being shown.
+   It follows the time slider like everything else, so it never disagrees with the numbers. */
+const HAZE = { on:true, vals:null, wind:null, cv:null, ctx:null, puffs:[], sprite:null, raf:0, last:0, visible:true, tint:"" };
+try{ HAZE.on = localStorage.getItem("hazeFx") !== "off"; }catch(e){}
+function hazeSprite(rgb){
+  const s=document.createElement("canvas"); s.width=s.height=128; const g=s.getContext("2d");
+  const gr=g.createRadialGradient(64,64,0,64,64,64);
+  gr.addColorStop(0,`rgba(${rgb},.55)`); gr.addColorStop(.45,`rgba(${rgb},.28)`); gr.addColorStop(1,`rgba(${rgb},0)`);
+  g.fillStyle=gr; g.fillRect(0,0,128,128); return s;
+}
+function initHaze(){
+  if(HAZE.cv || !LMAP) return;
+  // the canvas lives in its own map pane: above the region colours, below the number labels and controls
+  const box=LMAP.getContainer(), pane=LMAP.createPane("hazeFx"), cv=document.createElement("canvas");
+  pane.style.zIndex=450; pane.style.pointerEvents="none";
+  cv.className="hazefx"; cv.setAttribute("aria-hidden","true"); pane.appendChild(cv);
+  HAZE.cv=cv; HAZE.ctx=cv.getContext("2d");
+  const btn=L.control({position:"topleft"});
+  btn.onAdd=()=>{ const b=L.DomUtil.create("button","hazebtn"); b.type="button"; b.id="hazeBtn";
+    b.title="Show or hide the drifting haze effect"; L.DomEvent.disableClickPropagation(b);
+    b.onclick=()=>{ HAZE.on=!HAZE.on; try{ localStorage.setItem("hazeFx", HAZE.on?"on":"off"); }catch(e){} syncHazeBtn(); hazeKick(); };
+    return b; };
+  btn.addTo(LMAP); syncHazeBtn();
+  const size=()=>{ const r=box.getBoundingClientRect(), d=1;   // soft blur needs no retina detail; keeps it light
+    cv.width=Math.round(r.width*d); cv.height=Math.round(r.height*d); cv.style.width=r.width+"px"; cv.style.height=r.height+"px";
+    HAZE.ctx.setTransform(d,0,0,d,0,0); HAZE.w=r.width; HAZE.h=r.height;
+    const n=Math.round(Math.min(46, Math.max(22, r.width*r.height/9000)));
+    HAZE.puffs = Array.from({length:n},(_,k)=>({x:Math.random()*r.width, y:Math.random()*r.height, s:.6+Math.random()*1.0, ph:Math.random()*6.28, sp:.7+Math.random()*.6}));
+    hazeKick(); };
+  size(); addEventListener("resize", ()=>{ clearTimeout(HAZE.rt); HAZE.rt=setTimeout(size,150); });
+  try{ new IntersectionObserver(([e])=>{ HAZE.visible=e.isIntersecting; hazeKick(); }).observe(box); }catch(e){}
+  LMAP.on("move zoom", ()=>{ if(reduceMotion || !HAZE.raf) drawHaze(0); });
+  document.addEventListener("visibilitychange", hazeKick);
+}
+function syncHazeBtn(){ const b=$("hazeBtn"); if(!b) return; b.setAttribute("aria-pressed", HAZE.on); b.innerHTML = `<span aria-hidden="true">🌫️</span><span class="hz-t">${HAZE.on?"Haze on":"Haze off"}</span>`; }
+function setHaze(vals, wind){ HAZE.vals=vals; HAZE.wind=wind; hazeKick(); }
+// thickness at a screen point: blend of the regions' PM2.5, weighted by distance to their reading points
+function hazeDensity(x,y){
+  if(!HAZE.vals || !HAZE.pts) return 0;
+  let sw=0, sv=0;
+  for(let i=0;i<5;i++){ const p=HAZE.pts[i], dx=p.x-x, dy=p.y-y, w=1/(dx*dx+dy*dy+900); sw+=w; sv+=w*HAZE.vals[i]; }
+  const v=sv/sw; return Math.max(0, Math.min(1, (v-30)/170));     // ~0 when Normal, full by Very high
+}
+function hazeKick(){
+  const run = HAZE.on && HAZE.vals && HAZE.visible && !document.hidden;
+  if(HAZE.cv) HAZE.cv.style.opacity = HAZE.on ? 1 : 0;
+  if(!run){ cancelAnimationFrame(HAZE.raf); HAZE.raf=0; return; }
+  if(reduceMotion){ cancelAnimationFrame(HAZE.raf); HAZE.raf=0; drawHaze(0); return; }   // one still frame, no motion
+  if(!HAZE.raf){ HAZE.last=performance.now(); HAZE.raf=requestAnimationFrame(hazeTick); }
+}
+function hazeTick(t){
+  if(t-HAZE.last < 32){ HAZE.raf=requestAnimationFrame(hazeTick); return; }     // ~30 fps is plenty for slow drift
+  const dt=Math.min(.08,(t-HAZE.last)/1000); HAZE.last=t; drawHaze(dt);
+  HAZE.raf = (HAZE.on && HAZE.visible && !document.hidden) ? requestAnimationFrame(hazeTick) : 0;
+}
+function drawHaze(dt){
+  const c=HAZE.ctx, W=HAZE.w, H=HAZE.h; if(!c) return;
+  const tint = isDark() ? "150,132,112" : "142,112,78";
+  if(tint!==HAZE.tint){ HAZE.sprite=hazeSprite(tint); HAZE.tint=tint; }
+  L.DomUtil.setPosition(HAZE.cv, LMAP.containerPointToLayerPoint([0,0]));   // keep the canvas pinned to the visible map while panning
+  c.clearRect(0,0,W,H);
+  HAZE.pts = REG.map(r=>LMAP.latLngToContainerPoint([r.lat,r.lon]));      // once per frame, not per puff
+  const w=HAZE.wind, kmh = w ? w[1] : 0, calm = kmh < 3;
+  const to = w ? ((w[0]+180)%360)*Math.PI/180 : 0;               // the direction the wind blows TOWARDS
+  const spd = 8 + Math.min(kmh,30)*3.2;                          // pixels per second
+  const vx = calm ? 0 : Math.sin(to)*spd, vy = calm ? 0 : -Math.cos(to)*spd;
+  const R = Math.max(70, Math.min(W,H)*.28), zoomK = Math.pow(2, (LMAP.getZoom()-11)*.5);
+  HAZE.puffs.forEach(p=>{
+    p.ph += dt*(calm ? .35 : .6);
+    p.x += (vx*p.sp + Math.cos(p.ph)*(calm?7:4))*dt;  p.y += (vy*p.sp + Math.sin(p.ph*.8)*(calm?7:4))*dt;
+    const m=R*p.s; if(p.x<-m) p.x+=W+2*m; if(p.x>W+m) p.x-=W+2*m; if(p.y<-m) p.y+=H+2*m; if(p.y>H+m) p.y-=H+2*m;
+    const a = hazeDensity(p.x,p.y); if(a<=0.01) return;
+    const r = m*zoomK*(.9+.1*Math.sin(p.ph*1.3));
+    c.globalAlpha = Math.min(.85, a*(.75+.25*Math.sin(p.ph)));
+    c.drawImage(HAZE.sprite, p.x-r, p.y-r, r*2, r*2);
+  });
+  c.globalAlpha=1;
+}
+
+/* ---------- yesterday from space (NASA satellite view) ----------
+   Daily colour photo (VIIRS on NOAA-20) + fire hotspots, over Sumatra, Singapore and Borneo.
+   Satellites pass once a day, so this is clearly labelled as yesterday's view, apart from the live map.
+   Loads only when the card scrolls into view. */
+const GIBS_T = (layer, ext, lvl, d) => `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layer}/default/${d}/GoogleMapsCompatible_Level${lvl}/{z}/{y}/{x}.${ext}`;
+const GIBS_WMS = "https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi";
+let SPACE = null;
+function sgDayOffset(k){ const t=new Date(sgDate()+"T12:00:00+08:00"); t.setUTCDate(t.getUTCDate()+k); return t.toISOString().slice(0,10); }
+function initSpace(){
+  const box=$("spaceMap"); if(!box || SPACE || !window.L) return;
+  const m = L.map(box,{zoomControl:true, scrollWheelZoom:false, attributionControl:true, minZoom:4, maxZoom:9,
+    maxBounds:L.latLngBounds([-14,86],[16,130]), maxBoundsViscosity:.8});
+  m.attributionControl.setPrefix(false);
+  m.fitBounds([[-5.5,96.5],[6.5,118]]);
+  m.on("click focus",()=>m.scrollWheelZoom.enable()); m.on("mouseout blur",()=>m.scrollWheelZoom.disable());
+  if(matchMedia("(pointer: coarse)").matches) m.dragging.disable();      // one finger scrolls the page
+  SPACE = {m, tries:0};
+  L.circleMarker([1.3521,103.8198],{radius:6,color:"#fff",weight:2,fillColor:"#2753c9",fillOpacity:1,interactive:false}).addTo(m)
+    .bindTooltip("Singapore",{permanent:true,direction:"right",className:"sp-tip"});
+  loadSpaceDay(sgDayOffset(-1));
+}
+function loadSpaceDay(day){
+  const S=SPACE; S.day=day; S.tries++; let ok=0, err=0;
+  [S.photo,S.fire,S.smoke].forEach(l=>l && S.m.removeLayer(l));
+  const credit = 'Imagery: <a href="https://worldview.earthdata.nasa.gov/" target="_blank" rel="noopener">NASA Worldview / GIBS</a> · Fires: NASA FIRMS';
+  S.photo = L.tileLayer(GIBS_T("VIIRS_NOAA20_CorrectedReflectance_TrueColor","jpg",9,day),{maxNativeZoom:9, attribution:credit, className:"sp-photo"})
+    .on("tileload",()=>ok++).on("tileerror",()=>{ err++;
+      // early in the morning yesterday's pass may not be processed yet: fall back one more day
+      if(err>=4 && ok===0 && S.tries<3) loadSpaceDay(sgDayOffset(-1-S.tries)); }).addTo(S.m);
+  S.fire = L.tileLayer.wms(GIBS_WMS,{layers:"VIIRS_NOAA20_Thermal_Anomalies_375m_All", format:"image/png", transparent:true, version:"1.3.0", time:day, tileSize:512}).addTo(S.m);
+  S.smoke = L.tileLayer(GIBS_T("VIIRS_NOAA20_AOD_Deep_Blue_Land_Ocean","png",6,day),{maxNativeZoom:6, opacity:.65});
+  if($("spSmoke").checked) S.smoke.addTo(S.m);
+  if(S.fire.bringToFront) S.fire.bringToFront();
+  $("spDate").textContent = `${fmtWeekday(day)} ${fmtDay(day)}`;
+}
+function wireSpace(){
+  const card=$("spaceCard"); if(!card) return;
+  $("spSmoke").addEventListener("change", e=>{ if(!SPACE) return; e.target.checked ? SPACE.smoke.addTo(SPACE.m) : SPACE.m.removeLayer(SPACE.smoke); SPACE.fire.bringToFront && SPACE.fire.bringToFront(); });
+  try{ new IntersectionObserver((es,o)=>{ if(es[0].isIntersecting){ initSpace(); o.disconnect(); } },{rootMargin:"200px"}).observe(card); }catch(e){ initSpace(); }
+}
+
 /* ---------- data loading ---------- */
 // data.json is saved by a GitHub Action (every 15 min, often late). On each visit the page also asks data.gov.sg for newer readings.
 const REFRESH_MIN = 5;   // the page re-reads data.json every 5 min; the GitHub Action updates it every 15 min
@@ -2453,6 +2601,8 @@ setInterval(load, REFRESH_MIN*60*1000);
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !first) load(); });
 load();
 
+
+wireSpace();
 </script>
 </body>
 </html>
