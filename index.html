@@ -813,7 +813,7 @@ footer a{color:var(--ink)}
       <ol class="comm-list" id="commList" aria-live="polite"></ol>
       <button type="button" class="comm-more" id="commMore" hidden></button>
     </div>
-    <p class="sub small bt-rules"><b>Cleanest air wins.</b> Each day, the region with the lowest average PM2.5 gets 3 points. 2nd cleanest gets 2, 3rd gets 1. Dots show each day's place (1 = cleanest that day). The ringed dot is today, which counts live, so places can change.</p>
+    <p class="sub small bt-rules"><b>Cleanest air wins.</b> Each day, the region with the lowest average PM2.5 gets 3 points. 2nd cleanest gets 2, 3rd gets 1. Dots show each day's place (1 = cleanest that day). Only finished days count: today's points are added at midnight.</p>
   </section>
 
   <section class="sect dots" id="daySect">
@@ -1677,12 +1677,14 @@ function league(ds){
     t[ri].pts += PTS[rank]; t[ri].form.push(rank+1); if(rank===0) t[ri].wins++; }); });
   return t.sort((a,b)=>b.pts-a.pts || b.wins-a.wins || a.i-b.i);
 }
-const LG_ALL = league(days), weekDays = days.filter(d=>d.d>=weekStart), LG_WEEK = league(weekDays);
+// Only finished days score. Today is shown as "today so far" text but never changes the points.
+const doneDays = days.filter(d=>d.d<todayD);
+const LG_ALL = league(doneDays), weekDays = doneDays.filter(d=>d.d>=weekStart), LG_WEEK = league(weekDays);
 window.BATTLE = {pos:[], pts:[]}; LG_ALL.forEach((r,k)=>{ BATTLE.pos[r.i]=k+1; BATTLE.pts[r.i]=r.pts; });
 const hasToday = days.length && days[days.length-1].d===todayD;
 let BT = window.__bt || "all";
 function drawBattle(){
-  const all = BT==="all", lg = all ? LG_ALL : LG_WEEK, ds = all ? days : weekDays;
+  const all = BT==="all", lg = all ? LG_ALL : LG_WEEK, ds = all ? doneDays : weekDays;
   $("btAll").setAttribute("aria-pressed", all); $("btWeek").setAttribute("aria-pressed", !all);
   const [a,b] = lg, last = lg[lg.length-1];
   $("btHead").textContent = !ds.length ? "Clean air league"
@@ -1690,18 +1692,18 @@ function drawBattle(){
     : `${a.name} has the cleanest air, ${a.pts-b.pts} pt${a.pts-b.pts===1?"":"s"} ahead`;
   const tday = hasToday ? days[days.length-1] : null;
   const tOrder = tday ? REG.map((_,i)=>i).sort((x,y)=>tday.reg[x]-tday.reg[y]) : null;
-  $("btSub").textContent = `${ds.length} match day${ds.length===1?"":"s"}${all?" since 1 Oct":` since Mon ${fmtDay(weekStart)}`}. ${last.name} has the smokiest air, with ${last.pts} pt${last.pts===1?"":"s"}.`
-    + (tOrder ? ` Today so far: ${REG[tOrder[0]].name} cleanest, ${REG[tOrder[4]].name} smokiest.` : "");
+  const live = tOrder ? ` Today so far: ${REG[tOrder[0]].name} cleanest, ${REG[tOrder[4]].name} smokiest. Today's points are added at midnight.` : "";
+  $("btSub").textContent = !ds.length ? `No finished days yet this week. The table fills in from midnight tonight.${live}`
+    : `${ds.length} finished day${ds.length===1?"":"s"}${all?" since 1 Oct":` since Mon ${fmtDay(weekStart)}`}. ${last.name} has the smokiest air, with ${last.pts} pt${last.pts===1?"":"s"}.${live}`;
   const ops = ["100%","72%","50%","32%","20%"];
   const rows = lg.map((r,k)=>{
     const f = r.form.slice(-5), off = r.form.length - f.length;
-    const chips = f.map((p,j)=>{ const live = hasToday && off+j===r.form.length-1;
-      return `<i style="--o:${ops[p-1]}" class="${live?"live":""}" title="${ordinal(p)}${live?" (today, live)":""}">${p}</i>`; }).join("");
+    const chips = f.map(p=>`<i style="--o:${ops[p-1]}" title="${ordinal(p)}">${p}</i>`).join("");
     const tag = k===0 && r.pts>0 ? `<span class="tag clean">🌿 Cleanest air</span>` : k===lg.length-1 ? `<span class="tag smoky">😷 Smokiest</span>` : "";
     return `<div class="lg-row${k===0?" top":k===lg.length-1?" bottom":""}"><span class="pos">${k<3 && r.pts>0 ? MEDAL[k] : k+1}</span>
       <span class="nm">${r.name}${tag}<small>${r.wins} daily win${r.wins===1?"":"s"}</small></span>
       <span class="pts">${r.pts}</span><span class="form">${chips}</span></div>`; }).join("");
-  $("league").innerHTML = `<div class="lg-row hd"><span>#</span><span>Cleanest ↓</span><span class="pts">Pts</span><span class="form">Last 5 days → today</span></div>` + rows;
+  $("league").innerHTML = `<div class="lg-row hd"><span>#</span><span>Cleanest ↓</span><span class="pts">Pts</span><span class="form">Last 5 days</span></div>` + rows;
 }
 $("btAll").onclick = ()=>{ BT = window.__bt = "all"; drawBattle(); };
 $("btWeek").onclick = ()=>{ BT = window.__bt = "week"; drawBattle(); };
